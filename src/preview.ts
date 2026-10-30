@@ -137,8 +137,10 @@ export const renderPreview = async (
             const repaint = () => {
                 paintCode(editor.value);
                 paintGutter(editor.value);
-                editor.style.height = "auto";
-                editor.style.height = `${editor.scrollHeight}px`;
+                requestAnimationFrame(() => {
+                    editor.style.height = "auto";
+                    editor.style.height = `${editor.scrollHeight}px`;
+                });
             };
             editor.addEventListener("input", repaint);
             editor.addEventListener("keydown", (event) => {
@@ -154,9 +156,11 @@ export const renderPreview = async (
             });
             pre.classList.add("code-files-preview__code--backdrop");
             pre.appendChild(editor);
-            editor.style.height = "auto";
-            editor.style.height = `${editor.scrollHeight}px`;
-            editor.focus();
+            requestAnimationFrame(() => {
+                editor.style.height = "auto";
+                editor.style.height = `${editor.scrollHeight}px`;
+                editor.focus();
+            });
         } else if (editor) {
             paintCode(savedText);
             paintGutter(savedText);

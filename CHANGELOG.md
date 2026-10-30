@@ -1,5 +1,9 @@
 # Changelog
 
+## v0.5.3 2026-10-30
+
+* Fix cursor-text misalignment in editing: lock code, gutter, and editor to identical pixel typography (px line-height, box-sizing, tab-size, kerning, spacing) and sync editor height after layout
+
 ## v0.5.2 2026-10-30
 
 * Dock delete button uses the trashcan icon instead of text
