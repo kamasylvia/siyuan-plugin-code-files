@@ -54,11 +54,16 @@ const downloadScript = async (link: string, fileName: string, failed: string) =>
     }
 };
 
+export interface PreviewController {
+    isDirty: () => boolean;
+    save: () => Promise<boolean>;
+}
+
 export const renderPreview = async (
     host: HTMLElement,
     link: string,
     i18n: Record<string, string>,
-): Promise<void> => {
+): Promise<PreviewController> => {
     const fileName = link.slice("assets/".length);
     host.innerHTML = `<div class="code-files-preview">
 <div class="block__icons">
@@ -183,28 +188,31 @@ export const renderPreview = async (
             }
         })();
     });
-    saveButton.addEventListener("click", () => {
+    const saveNow = async (): Promise<boolean> => {
         if (!editor) {
-            return;
+            return true;
         }
-        void (async () => {
-            try {
-                const form = new FormData();
-                form.append("path", `data/${link}`);
-                form.append("file", new File([editor.value], fileName, {type: "text/plain"}));
-                const response = await fetch("/api/file/putFile", {body: form, method: "POST"});
-                const result = await response.json() as {code: number; msg: string;};
-                if (!response.ok || result.code !== 0) {
-                    throw new Error(result.msg || `putFile HTTP ${response.status}`);
-                }
-                savedText = editor.value;
-                showMessage(i18n.saved);
-                setEditing(false);
-            } catch (error) {
-                console.error(error);
-                showMessage(i18n.saveFailed);
+        try {
+            const form = new FormData();
+            form.append("path", `data/${link}`);
+            form.append("file", new File([editor.value], fileName, {type: "text/plain"}));
+            const response = await fetch("/api/file/putFile", {body: form, method: "POST"});
+            const result = await response.json() as {code: number; msg: string;};
+            if (!response.ok || result.code !== 0) {
+                throw new Error(result.msg || `putFile HTTP ${response.status}`);
             }
-        })();
+            savedText = editor.value;
+            showMessage(i18n.saved);
+            setEditing(false);
+            return true;
+        } catch (error) {
+            console.error(error);
+            showMessage(i18n.saveFailed);
+            return false;
+        }
+    };
+    saveButton.addEventListener("click", () => {
+        void saveNow();
     });
     try {
         const {text, truncated} = await readScript(link);
@@ -223,6 +231,10 @@ export const renderPreview = async (
         console.error(error);
         code.textContent = i18n.loadFailed;
     }
+    return {
+        isDirty: () => editing && !!editor && editor.value !== savedText,
+        save: saveNow,
+    };
 };
 export const openPreview = (
     pluginName: string,

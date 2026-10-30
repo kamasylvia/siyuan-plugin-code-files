@@ -66,6 +66,15 @@
       pointer-events: none;
       user-select: none;
     }
+
+    // Neutralize the bundled hljs theme (.hljs{padding:1em}) so the
+    // backdrop text aligns pixel-identical with the overlay editor.
+    code {
+      display: block;
+      margin: 0;
+      overflow: visible;
+      padding: 0;
+    }
   }
 
   &__editor {

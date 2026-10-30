@@ -13,6 +13,7 @@ import {
     openPreview,
     renderPreview,
 } from "./preview";
+import type {PreviewController} from "./preview";
 import {
     ASSETS_DIR,
     copyText,
@@ -63,11 +64,40 @@ export default class ScriptAssetsPlugin extends Plugin {
             type: DOCK_TYPE,
             init: (dock) => this.renderDock(dock.element),
         });
+        const controllers = new WeakMap<object, Promise<PreviewController>>();
         this.addTab({
             type: PREVIEW_TAB_TYPE,
             init: (custom) => {
                 const link = (custom.data as {link?: string;} | undefined)?.link ?? "";
-                void renderPreview(custom.element, link, this.i18n as unknown as Record<string, string>);
+                const pending = renderPreview(custom.element, link, this.i18n as unknown as Record<string, string>);
+                controllers.set(custom, pending);
+                // Intercept the tab × button while dirty: beforeDestroy cannot
+                // await an async dialog, so ask before the close happens.
+                const head = (custom as {tab?: {headElement?: HTMLElement;};}).tab?.headElement;
+                head?.querySelector('[data-type="close"]')?.addEventListener("click", (event) => {
+                    void (async () => {
+                        const controller = await pending;
+                        if (!controller.isDirty()) {
+                            return;
+                        }
+                        event.preventDefault();
+                        event.stopImmediatePropagation();
+                        confirm(
+                            this.i18n.unsavedTitle,
+                            this.i18n.unsavedPrompt,
+                            () => {
+                                void controller.save().then((ok) => {
+                                    if (ok) {
+                                        this.closePreviewTab(custom);
+                                    }
+                                });
+                            },
+                        );
+                    })();
+                }, {capture: true});
+            },
+            beforeDestroy: (custom) => {
+                controllers.delete(custom);
             },
         });
 
@@ -89,6 +119,13 @@ export default class ScriptAssetsPlugin extends Plugin {
             description: "",
             action: {},
         });
+    }
+
+    private closePreviewTab(custom: object) {
+        const tab = (custom as {tab?: {id?: string; parent?: {removeTab?: (id: string) => void;};};}).tab;
+        if (tab?.id && tab.parent?.removeTab) {
+            tab.parent.removeTab(tab.id);
+        }
     }
 
     onLayoutReady() {
@@ -164,7 +201,10 @@ export default class ScriptAssetsPlugin extends Plugin {
                 event.stopPropagation();
                 openPreview(this.name, this.app, toAssetLink(name), undefined, () => this.getOpenedTab() as never);
             });
-            row.querySelector('[data-action="insert"]').addEventListener("click", (event) => {
+            const insertButton = row.querySelector('[data-action="insert"]');
+            // Keep the editor selection: mousedown on a button blurs the editor.
+            insertButton.addEventListener("mousedown", (event) => event.preventDefault());
+            insertButton.addEventListener("click", (event) => {
                 event.stopPropagation();
                 void this.insertReference(name);
             });
@@ -276,6 +316,7 @@ export default class ScriptAssetsPlugin extends Plugin {
             return;
         }
         const editor = editors[0];
+        editor.focus();
         const html = editor.protyle.lute?.InlineMd2BlockDOM(toMarkdownLink(name)) ?? toMarkdownLink(name);
         editor.insert(html);
         showMessage(this.i18n.referenceInserted);

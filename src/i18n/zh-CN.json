@@ -33,5 +33,7 @@
   "close": "关闭",
   "copy": "复制",
   "copyFailed": "复制失败",
-  "cancel": "取消"
+  "cancel": "取消",
+  "unsavedTitle": "有未保存的修改",
+  "unsavedPrompt": "关闭前保存修改吗？"
 }

@@ -33,5 +33,7 @@
   "close": "Close",
   "copy": "Copy",
   "copyFailed": "Failed to copy",
-  "cancel": "Cancel"
+  "cancel": "Cancel",
+  "unsavedTitle": "Unsaved changes",
+  "unsavedPrompt": "Save changes before closing?"
 }

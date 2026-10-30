@@ -1,5 +1,11 @@
 # Changelog
 
+## v0.5.4 2026-10-30
+
+* Fix cursor-text misalignment: neutralize the bundled hljs theme padding on the code element so the backdrop aligns with the overlay editor
+* Closing a dirty preview tab now asks to save first (cancel keeps the tab open)
+* Fix dock insert silently failing: preserve the editor selection on mousedown and focus the editor before inserting
+
 ## v0.5.3 2026-10-30
 
 * Fix cursor-text misalignment in editing: lock code, gutter, and editor to identical pixel typography (px line-height, box-sizing, tab-size, kerning, spacing) and sync editor height after layout
