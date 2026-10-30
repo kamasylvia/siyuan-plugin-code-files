@@ -1,5 +1,9 @@
 # Changelog
 
+## v0.8.1 2026-10-30
+
+* Fix dock alignment: fixed 24px toolbar cells for even spacing, select-all checkbox aligned with row checkboxes
+
 ## v0.8.0 2026-10-30
 
 * Redesign the dock: click the file name to open, per-row checkboxes, toolbar with select-all, new, batch delete, refresh, and close
