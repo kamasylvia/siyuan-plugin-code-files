@@ -94,6 +94,31 @@ export const postJSON = async <T>(url: string, body: unknown): Promise<ApiEnvelo
     return await response.json() as ApiEnvelope<T>;
 };
 
+// Mirror writeText: navigator.clipboard rejects outside secure contexts
+// (remote kernels over plain HTTP), so fall back to execCommand.
+export const copyText = async (text: string): Promise<void> => {
+    try {
+        await navigator.clipboard.writeText(text);
+        return;
+    } catch (error) {
+        console.error(error);
+    }
+    const helper = document.createElement("textarea");
+    helper.value = text;
+    helper.style.position = "fixed";
+    helper.style.opacity = "0";
+    document.body.appendChild(helper);
+    helper.focus();
+    helper.select();
+    try {
+        if (!document.execCommand("copy")) {
+            throw new Error("execCommand copy returned false");
+        }
+    } finally {
+        helper.remove();
+    }
+};
+
 export type AssetOpenAction =
     | "follow-tab"
     | "current"

@@ -1,5 +1,9 @@
 # Changelog
 
+## v0.4.3 2026-10-30
+
+* Fix copy failing on remote/plain-HTTP kernels: clipboard writes fall back to execCommand like the official writeText (preview Copy button and dock copy-path action)
+
 ## v0.4.2 2026-10-30
 
 * Fix read-only code not selectable: declare user-select explicitly on the code block

@@ -3,6 +3,7 @@ import {
     showMessage,
 } from "siyuan";
 import {
+    copyText,
     languageOf,
     postJSON,
 } from "./shared";
@@ -167,7 +168,7 @@ export const renderPreview = async (
     copyButton.addEventListener("click", () => {
         void (async () => {
             try {
-                await navigator.clipboard.writeText(savedText);
+                await copyText(savedText);
                 showMessage(i18n.copied);
             } catch (error) {
                 console.error(error);

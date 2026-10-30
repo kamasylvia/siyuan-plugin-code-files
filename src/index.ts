@@ -13,6 +13,7 @@ import {
 } from "./preview";
 import {
     ASSETS_DIR,
+    copyText,
     isScriptPath,
     postJSON,
     previewLinkOf,
@@ -165,10 +166,15 @@ export default class ScriptAssetsPlugin extends Plugin {
                 event.stopPropagation();
                 void this.insertReference(name);
             });
-            row.querySelector('[data-action="copy"]').addEventListener("click", async (event) => {
+            row.querySelector('[data-action="copy"]').addEventListener("click", (event) => {
                 event.stopPropagation();
-                await navigator.clipboard.writeText(toAssetLink(name));
-                showMessage(this.i18n.copied);
+                void copyText(toAssetLink(name)).then(
+                    () => showMessage(this.i18n.copied),
+                    (error: unknown) => {
+                        console.error(error);
+                        showMessage(this.i18n.copyFailed);
+                    },
+                );
             });
             row.querySelector('[data-action="delete"]').addEventListener("click", (event) => {
                 event.stopPropagation();
