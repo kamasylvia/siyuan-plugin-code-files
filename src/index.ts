@@ -1,4 +1,5 @@
 import {
+    Menu,
     Plugin,
     Setting,
     confirm,
@@ -70,10 +71,10 @@ export default class ScriptAssetsPlugin extends Plugin {
         });
 
         this.addCommand({
-            langKey: "codeFiles",
-            langText: this.i18n.codeFilesTip,
+            langKey: "insertReference",
+            langText: this.i18n.insertReference,
             hotkey: "",
-            callback: () => this.refresh(),
+            callback: () => this.pickAndInsert(),
         });
 
         const setting = new Setting({
@@ -209,6 +210,36 @@ export default class ScriptAssetsPlugin extends Plugin {
             console.error(error);
             showMessage(this.i18n.createFailed);
         }
+    }
+    private async pickAndInsert() {
+        const editors = getAllEditor();
+        if (editors.length === 0) {
+            showMessage(this.i18n.noEditor);
+            return;
+        }
+        let scripts: string[];
+        try {
+            scripts = await this.listScripts();
+        } catch (error) {
+            console.error(error);
+            showMessage(this.i18n.loadFailed);
+            return;
+        }
+        if (scripts.length === 0) {
+            showMessage(this.i18n.noScripts);
+            return;
+        }
+        const menu = new Menu("codeFilesInsert");
+        for (const name of scripts) {
+            menu.addItem({
+                icon: "iconCode",
+                id: name,
+                label: name,
+                click: () => this.insertReference(name),
+            });
+        }
+        const rect = editors[0].protyle.element.getBoundingClientRect();
+        menu.open({x: rect.left, y: rect.top});
     }
 
     private async insertReference(name: string) {

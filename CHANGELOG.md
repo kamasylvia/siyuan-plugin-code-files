@@ -1,5 +1,9 @@
 # Changelog
 
+## v0.5.0 2026-10-30
+
+* New Insert reference command: pick a code file from a menu to insert its asset link at the cursor, without opening the dock
+
 ## v0.4.4 2026-10-30
 
 * Toolbar order follows the mode: read-only shows Copy, Edit, Download; editing shows Save, Read-only, Download

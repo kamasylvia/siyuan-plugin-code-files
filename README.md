@@ -18,7 +18,7 @@ Store code files as SiYuan assets, preview them with syntax highlighting and lin
 
 1. Open the Code Files dock panel from the left dock bar.
 2. Click `New script` to create a code file, or manage existing files already in `data/assets/`.
-3. Put the cursor where you want the reference in your note, then click the `+` button on the file row: a one-line `[name](assets/...)` link is inserted.
+3. Put the cursor where you want the reference in your note, then click the `+` button on the file row: a one-line `[name](assets/...)` link is inserted. Alternatively, run the `Insert reference` command from the command panel to pick a file from a menu.
 4. Click the link to open the preview tab (right split, like PDFs): read-only with syntax highlighting, line numbers, Copy, and Download. Switch to Edit to modify and save in place.
 
 ## Development
