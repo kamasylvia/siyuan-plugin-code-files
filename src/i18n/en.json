@@ -30,5 +30,7 @@
   "saved": "Saved",
   "saveFailed": "Failed to save",
   "discardChanges": "Discard unsaved changes?",
-  "close": "Close"
+  "close": "Close",
+  "copy": "Copy",
+  "copyFailed": "Failed to copy"
 }

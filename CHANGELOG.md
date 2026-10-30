@@ -1,5 +1,11 @@
 # Changelog
 
+## v0.4.2 2026-10-30
+
+* Fix read-only code not selectable: declare user-select explicitly on the code block
+* Fix editing going blank: highlight errors now fall back to plain text instead of clearing, with ignoreIllegals like the official renderer
+* Read-only toolbar gains a Copy button for the full text
+
 ## v0.4.1 2026-10-30
 
 * Editing keeps syntax highlighting: transparent textarea overlays the highlighted code with live re-render, synced height, visible caret and selection

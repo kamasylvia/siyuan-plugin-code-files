@@ -62,6 +62,7 @@ export const renderPreview = async (
     host.innerHTML = `<div class="code-files-preview">
 <div class="block__icons">
 <span class="block__icon--show fn__flex-1">${fileName}</span>
+<button data-action="copy" class="b3-button b3-button--text">${i18n.copy}</button>
 <button data-action="mode" class="b3-button b3-button--text">${i18n.edit}</button>
 <button data-action="save" class="b3-button b3-button--text fn__none">${i18n.save}</button>
 <button data-action="download" class="b3-button b3-button--text">${i18n.download}</button>
@@ -70,6 +71,7 @@ export const renderPreview = async (
 </div>`;
     const modeButton = host.querySelector('[data-action="mode"]') as HTMLButtonElement;
     const saveButton = host.querySelector('[data-action="save"]') as HTMLButtonElement;
+    const copyButton = host.querySelector('[data-action="copy"]') as HTMLButtonElement;
     host.querySelector('[data-action="download"]').addEventListener("click", () => {
         void downloadScript(link, fileName, i18n.downloadFailed);
     });
@@ -88,21 +90,26 @@ export const renderPreview = async (
         gutter.textContent = numbers;
     };
     const paintCode = (text: string) => {
-        code.textContent = "";
         const language = languageOf(fileName);
         // Reuse SiYuan's bundled highlight.js when the editor has loaded it.
         const hljs = (window as unknown as {
             hljs?: {
-                highlight: (code: string, options: {language: string;}) => {value: string;};
+                highlight: (code: string, options: {language: string; ignoreIllegals?: boolean;}) => {value: string;};
                 getLanguage: (name: string) => unknown;
             };
         }).hljs;
         if (hljs && language !== "plaintext" && hljs.getLanguage(language)) {
-            code.innerHTML = hljs.highlight(text, {language}).value;
-            code.className = `hljs language-${language}`;
-        } else {
-            code.textContent = text;
+            try {
+                code.innerHTML =
+                    hljs.highlight(text + (text.endsWith("\n") ? "" : "\n"), {language, ignoreIllegals: true}).value;
+                code.className = `hljs language-${language}`;
+                return;
+            } catch (error) {
+                console.error(error);
+            }
         }
+        code.className = "";
+        code.textContent = text;
     };
     const setEditing = (next: boolean) => {
         if (next === editing) {
@@ -116,6 +123,7 @@ export const renderPreview = async (
         editing = next;
         modeButton.textContent = editing ? i18n.readonly : i18n.edit;
         saveButton.classList.toggle("fn__none", !editing);
+        copyButton.classList.toggle("fn__none", editing);
         if (editing) {
             editor = document.createElement("textarea");
             editor.className = "code-files-preview__editor";
@@ -156,6 +164,17 @@ export const renderPreview = async (
         }
     };
     modeButton.addEventListener("click", () => setEditing(!editing));
+    copyButton.addEventListener("click", () => {
+        void (async () => {
+            try {
+                await navigator.clipboard.writeText(savedText);
+                showMessage(i18n.copied);
+            } catch (error) {
+                console.error(error);
+                showMessage(i18n.copyFailed);
+            }
+        })();
+    });
     saveButton.addEventListener("click", () => {
         if (!editor) {
             return;
