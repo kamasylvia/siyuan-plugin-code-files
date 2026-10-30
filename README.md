@@ -14,6 +14,13 @@ Store code files as SiYuan assets, preview them with syntax highlighting and lin
 * **Manage**: the dock panel lists, creates, references, and deletes code files.
 * **Expose**: the kernel plugin registers a `get_referenced_scripts` agent capability (also projected to external MCP clients), resolving a document's asset references and returning each file path with its content. The AI fetches files locally and runs them itself — this plugin never executes code.
 
+## Usage
+
+1. Open the Code Files dock panel from the left dock bar.
+2. Click `New script` to create a code file, or manage existing files already in `data/assets/`.
+3. Put the cursor where you want the reference in your note, then click the `+` button on the file row: a one-line `[name](assets/...)` link is inserted.
+4. Click the link to open the preview tab (right split, like PDFs): read-only with syntax highlighting, line numbers, Copy, and Download. Switch to Edit to modify and save in place.
+
 ## Development
 
 * `pnpm i` to install dependencies
