@@ -2,34 +2,15 @@
   "name": "siyuan-plugin-code-files",
   "author": "kamasylvia",
   "url": "https://github.com/kamasylvia/siyuan-plugin-code-files",
-  "version": "0.9.1",
+  "version": "0.9.2",
   "minAppVersion": "3.8.5",
   "kernels": [
-    "windows",
-    "linux",
-    "darwin",
-    "ios",
-    "android",
-    "harmony",
-    "docker",
     "all"
   ],
   "backends": [
-    "windows",
-    "linux",
-    "darwin",
-    "ios",
-    "android",
-    "harmony",
-    "docker",
     "all"
   ],
   "frontends": [
-    "desktop",
-    "mobile",
-    "browser-desktop",
-    "browser-mobile",
-    "desktop-window",
     "all"
   ],
   "settingsWindow": true,
@@ -56,9 +37,7 @@
     "openCollective": "",
     "patreon": "",
     "github": "",
-    "custom": [
-      "https://ld246.com/sponsor"
-    ]
+    "custom": []
   },
   "keywords": [
     "script",

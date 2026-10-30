@@ -1,5 +1,9 @@
 # Changelog
 
+## v0.9.2 2026-10-30
+
+* Fix bazaar listing review: drop template funding link, use ["all"] alone for kernels/backends/frontends
+
 ## v0.9.1 2026-10-30
 
 * Adopt tsc --noEmit: tsconfig aligned to es2024 + DOM (was es6), all 43 errors fixed, pnpm typecheck added
