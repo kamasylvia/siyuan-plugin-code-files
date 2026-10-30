@@ -1,7 +1,5 @@
 # Code Files 代码文件
 
-![preview](preview.png)
-
 [中文](./README.zh-CN.md)
 
 Store code files as SiYuan assets, preview them with syntax highlighting and line numbers, reference them from notes with plain Markdown links, and expose them to AI agents — without embedding long code in `.sy` files. 中文名：代码文件。

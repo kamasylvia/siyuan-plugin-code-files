@@ -1,7 +1,5 @@
 # 代码文件 Code Files
 
-![preview](preview.png)
-
 [English](./README.md)
 
 把代码文件存为思源资源，带语法高亮与行号预览，用普通 Markdown 链接在笔记中引用，并暴露给 AI 智能体——长代码不再污染 `.sy` 文件。
