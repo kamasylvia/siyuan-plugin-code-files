@@ -25,87 +25,34 @@
     display: flex;
     flex: 1;
     min-height: 0;
-    overflow: auto;
+    overflow: hidden;
     position: relative;
   }
 
-  &__gutter {
-    background-color: var(--b3-theme-background-light);
-    border-right: 1px solid var(--b3-border-color);
+  &__loading {
     color: var(--b3-theme-on-surface-light);
-    flex-shrink: 0;
-    font-family: var(--b3-font-family-code);
-    font-size: 13px;
-    line-height: 20.8px;
-    padding: 12px 8px 12px 12px;
-    position: sticky;
-    left: 0;
-    text-align: right;
-    user-select: none;
-    white-space: pre;
+    padding: 12px 16px;
   }
-  &__code {
-    box-sizing: border-box;
+
+  // CodeMirror host: fill the body, inherit SiYuan code typography.
+  .cm-editor {
     flex: 1;
     font-family: var(--b3-font-family-code);
     font-size: 13px;
-    font-kerning: none;
-    font-variant-ligatures: none;
-    letter-spacing: 0;
-    line-height: 20.8px;
-    margin: 0;
-    overflow: visible;
-    padding: 12px 16px;
-    position: relative;
-    tab-size: 4;
-    user-select: text;
-    white-space: pre;
-    word-spacing: 0;
+    height: 100%;
+    line-height: 1.6;
+    outline: none;
 
-    &--backdrop {
-      pointer-events: none;
+    &.cm-focused {
+      outline: none;
+    }
+
+    .cm-scroller {
+      line-height: 1.6;
+    }
+
+    .cm-gutters {
       user-select: none;
     }
-
-    // Neutralize the bundled hljs theme (.hljs{padding:1em}) so the
-    // backdrop text aligns pixel-identical with the overlay editor.
-    code {
-      display: block;
-      margin: 0;
-      overflow: visible;
-      padding: 0;
-    }
-  }
-
-  &__editor {
-    background-color: transparent;
-    border: 0;
-    box-sizing: border-box;
-    caret-color: var(--b3-theme-on-background);
-    color: transparent;
-    font-family: var(--b3-font-family-code);
-    font-size: 13px;
-    font-kerning: none;
-    font-variant-ligatures: none;
-    left: 0;
-    letter-spacing: 0;
-    line-height: 20.8px;
-    margin: 0;
-    outline: none;
-    overflow: hidden;
-    padding: 12px 16px;
-    pointer-events: auto;
-    position: absolute;
-    resize: none;
-    right: 0;
-    tab-size: 4;
-    top: 0;
-    white-space: pre;
-    word-spacing: 0;
-    z-index: 1;
-  }
-
-  &__editor::selection {
-    background-color: rgb(82 139 255 / 35%);
   }
 }

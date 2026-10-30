@@ -1,5 +1,11 @@
 # Changelog
 
+## v0.6.0 2026-10-30
+
+* Rewrite the code view on CodeMirror 6 (ported from editor-siyuan): native line numbers, undo/redo, indentation, and hljs decorations shared with SiYuan code blocks; the overlay misalignment is gone by construction
+* Asset reads/writes go through kernel resolution with BOM and line-ending preservation
+* New settings: open position (right split or new tab), default mode from notes (preview), default mode from dock (edit)
+
 ## v0.5.4 2026-10-30
 
 * Fix cursor-text misalignment: neutralize the bundled hljs theme padding on the code element so the backdrop aligns with the overlay editor

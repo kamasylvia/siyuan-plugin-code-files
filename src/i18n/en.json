@@ -24,6 +24,7 @@
   "downloadFailed": "Failed to download script",
   "loading": "Loading...",
   "truncated": "Preview truncated to the first 1 MB. Download the file for the full content.",
+  "tooLarge": "File exceeds the 1 MB preview limit",
   "edit": "Edit",
   "readonly": "Read-only",
   "save": "Save",
@@ -35,5 +36,15 @@
   "copyFailed": "Failed to copy",
   "cancel": "Cancel",
   "unsavedTitle": "Unsaved changes",
-  "unsavedPrompt": "Save changes before closing?"
+  "unsavedPrompt": "Save changes before closing?",
+  "openPosition": "Open position",
+  "openPositionDesc": "Where new code tabs open",
+  "openPositionRight": "Right split",
+  "openPositionTab": "New tab",
+  "noteDefault": "Default mode from notes",
+  "noteDefaultDesc": "Mode when opened from a note link",
+  "dockDefault": "Default mode from dock",
+  "dockDefaultDesc": "Mode when opened from the dock panel",
+  "modePreview": "Preview",
+  "modeEdit": "Edit"
 }

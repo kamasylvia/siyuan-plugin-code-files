@@ -1,6 +1,6 @@
 {
   "name": "siyuan-plugin-code-files",
-  "version": "0.5.4",
+  "version": "0.6.0",
   "description": "Preview code files stored as SiYuan assets, reference them from notes, and expose them to AI agents",
   "main": ".src/index.js",
   "scripts": {
@@ -43,5 +43,12 @@
     "webpack": "^5.107.2",
     "webpack-cli": "^7.0.3",
     "zip-webpack-plugin": "^4.0.3"
+  },
+  "dependencies": {
+    "@codemirror/commands": "^6.11.1",
+    "@codemirror/language": "^6.13.1",
+    "@codemirror/search": "^6.7.2",
+    "@codemirror/state": "^6.7.6",
+    "@codemirror/view": "^6.43.15"
   }
 }

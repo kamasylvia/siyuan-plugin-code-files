@@ -24,6 +24,7 @@
   "downloadFailed": "下载脚本失败",
   "loading": "加载中...",
   "truncated": "预览仅显示前 1 MB，完整内容请下载文件。",
+  "tooLarge": "文件超过 1 MB 预览上限",
   "edit": "编辑",
   "readonly": "只读",
   "save": "保存",
@@ -35,5 +36,15 @@
   "copyFailed": "复制失败",
   "cancel": "取消",
   "unsavedTitle": "有未保存的修改",
-  "unsavedPrompt": "关闭前保存修改吗？"
+  "unsavedPrompt": "关闭前保存修改吗？",
+  "openPosition": "打开位置",
+  "openPositionDesc": "代码页签在何处打开",
+  "openPositionRight": "右侧分栏",
+  "openPositionTab": "新页签",
+  "noteDefault": "从笔记打开的默认模式",
+  "noteDefaultDesc": "点击笔记链接时的初始模式",
+  "dockDefault": "从 dock 打开的默认模式",
+  "dockDefaultDesc": "从 dock 面板打开时的初始模式",
+  "modePreview": "预览",
+  "modeEdit": "编辑"
 }

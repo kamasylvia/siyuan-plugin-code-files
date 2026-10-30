@@ -15,6 +15,11 @@ import {
 } from "./preview";
 import type {PreviewController} from "./preview";
 import {
+    DEFAULT_SETTINGS,
+    normalizeSettings,
+    type CodeFilesSettings,
+} from "./settings";
+import {
     ASSETS_DIR,
     copyText,
     isScriptPath,
@@ -40,8 +45,14 @@ interface UploadResponse {
 
 export default class ScriptAssetsPlugin extends Plugin {
     private element: HTMLElement | undefined;
+    private settings: CodeFilesSettings = {...DEFAULT_SETTINGS};
 
     async onload() {
+        try {
+            this.settings = normalizeSettings(await this.loadData("settings.json"));
+        } catch {
+            this.settings = {...DEFAULT_SETTINGS};
+        }
         this.eventBus.on("open-asset", (event: CustomEvent<{path?: string; event?: MouseEvent;}>) => {
             const link = previewLinkOf(event.detail?.path);
             const config = (window.siyuan?.config?.editor as {assetOpen?: Record<string, string>;} | undefined)
@@ -51,7 +62,10 @@ export default class ScriptAssetsPlugin extends Plugin {
                 return;
             }
             event.preventDefault();
-            openPreview(this.name, this.app, link, action, () => this.getOpenedTab() as never);
+            openPreview(this.name, this.app, link, action, {
+                forceTab: this.settings.openPosition === "tab",
+                startEditing: this.settings.noteDefault === "edit",
+            }, () => this.getOpenedTab() as never);
         });
         this.addDock({
             config: {
@@ -68,8 +82,13 @@ export default class ScriptAssetsPlugin extends Plugin {
         this.addTab({
             type: PREVIEW_TAB_TYPE,
             init: (custom) => {
-                const link = (custom.data as {link?: string;} | undefined)?.link ?? "";
-                const pending = renderPreview(custom.element, link, this.i18n as unknown as Record<string, string>);
+                const data = custom.data as {link?: string; startEditing?: boolean;} | undefined;
+                const pending = renderPreview(
+                    custom.element,
+                    data?.link ?? "",
+                    this.i18n as unknown as Record<string, string>,
+                    data?.startEditing === true,
+                );
                 controllers.set(custom, pending);
                 // Intercept the tab × button while dirty: beforeDestroy cannot
                 // await an async dialog, so ask before the close happens.
@@ -108,17 +127,72 @@ export default class ScriptAssetsPlugin extends Plugin {
             callback: () => this.pickAndInsert(),
         });
 
-        const setting = new Setting({
-            confirmCallback: () => this.saveData("config", {}),
-        });
-        setting.addItem({
-            key: "hint",
-            value: "",
-            type: "textinput",
-            title: this.i18n.codeFilesTip,
-            description: "",
-            action: {},
-        });
+        const setting = new Setting({});
+        this.setting = setting;
+        const selectRow = (
+            title: string,
+            description: string,
+            value: string,
+            options: Array<{value: string; label: string;}>,
+            onChange: (next: string) => void,
+        ) => {
+            setting.addItem({
+                description,
+                title,
+                actionElement: (() => {
+                    const select = document.createElement("select");
+                    select.className = "b3-select fn__flex-center";
+                    for (const option of options) {
+                        const element = document.createElement("option");
+                        element.value = option.value;
+                        element.textContent = option.label;
+                        element.selected = option.value === value;
+                        select.appendChild(element);
+                    }
+                    select.addEventListener("change", () => {
+                        onChange(select.value);
+                        void this.saveData("settings.json", this.settings);
+                    });
+                    return select;
+                })(),
+            });
+        };
+        selectRow(
+            this.i18n.openPosition,
+            this.i18n.openPositionDesc,
+            this.settings.openPosition,
+            [
+                {value: "right", label: this.i18n.openPositionRight},
+                {value: "tab", label: this.i18n.openPositionTab},
+            ],
+            (next) => {
+                this.settings.openPosition = next === "tab" ? "tab" : "right";
+            },
+        );
+        selectRow(
+            this.i18n.noteDefault,
+            this.i18n.noteDefaultDesc,
+            this.settings.noteDefault,
+            [
+                {value: "preview", label: this.i18n.modePreview},
+                {value: "edit", label: this.i18n.modeEdit},
+            ],
+            (next) => {
+                this.settings.noteDefault = next === "edit" ? "edit" : "preview";
+            },
+        );
+        selectRow(
+            this.i18n.dockDefault,
+            this.i18n.dockDefaultDesc,
+            this.settings.dockDefault,
+            [
+                {value: "preview", label: this.i18n.modePreview},
+                {value: "edit", label: this.i18n.modeEdit},
+            ],
+            (next) => {
+                this.settings.dockDefault = next === "edit" ? "edit" : "preview";
+            },
+        );
     }
 
     private closePreviewTab(custom: object) {
@@ -199,7 +273,10 @@ export default class ScriptAssetsPlugin extends Plugin {
 </span>`;
             row.querySelector('[data-action="open"]').addEventListener("click", (event) => {
                 event.stopPropagation();
-                openPreview(this.name, this.app, toAssetLink(name), undefined, () => this.getOpenedTab() as never);
+                openPreview(this.name, this.app, toAssetLink(name), undefined, {
+                    forceTab: this.settings.openPosition === "tab",
+                    startEditing: this.settings.dockDefault === "edit",
+                }, () => this.getOpenedTab() as never);
             });
             const insertButton = row.querySelector('[data-action="insert"]');
             // Keep the editor selection: mousedown on a button blurs the editor.

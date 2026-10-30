@@ -1,37 +1,28 @@
+import type {EditorView} from "@codemirror/view";
 import {
     openTab,
     showMessage,
 } from "siyuan";
 import {
+    readAssetText,
+    resolveAsset,
+    writeAssetText,
+    type AssetRef,
+    type AssetText,
+} from "./asset";
+import {
+    createCodeEditor,
+    setCodeEditorReadOnly,
+} from "./editor";
+import {
     copyText,
     languageOf,
-    postJSON,
 } from "./shared";
 import type {AssetOpenAction} from "./shared";
 
 export const PREVIEW_TAB_TYPE = "script_preview";
 
 const MAX_PREVIEW_BYTES = 1024 * 1024;
-
-async function readScript(link: string): Promise<{text: string; truncated: boolean;}> {
-    const stat = await postJSON<{size?: number;}>("/api/asset/statAsset", {path: link});
-    if (stat.code !== 0) {
-        throw new Error(stat.msg || "statAsset failed");
-    }
-    const apiPath = `/data/${link}`;
-    const response = await fetch("/api/file/getFile", {
-        body: JSON.stringify({path: apiPath}),
-        method: "POST",
-    });
-    if (!response.ok) {
-        throw new Error(`getFile HTTP ${response.status}`);
-    }
-    const buffer = await response.arrayBuffer();
-    const bytes = new Uint8Array(buffer);
-    const truncated = bytes.length > MAX_PREVIEW_BYTES;
-    const slice = truncated ? bytes.slice(0, MAX_PREVIEW_BYTES) : bytes;
-    return {text: new TextDecoder("utf-8", {fatal: false}).decode(slice), truncated};
-}
 
 const downloadScript = async (link: string, fileName: string, failed: string) => {
     try {
@@ -54,6 +45,39 @@ const downloadScript = async (link: string, fileName: string, failed: string) =>
     }
 };
 
+// SiYuan injects highlight.js only after rendering a code block; load its
+// bundled copy explicitly so decorations compute on first open.
+let hljsPending: Promise<boolean> | undefined;
+const ensureHljs = (): Promise<boolean> => {
+    if ((window as unknown as {hljs?: unknown;}).hljs) {
+        return Promise.resolve(true);
+    }
+    if (!hljsPending) {
+        const inject = (src: string): Promise<boolean> =>
+            new Promise((resolve) => {
+                const script = document.createElement("script");
+                script.src = src;
+                script.async = true;
+                script.addEventListener("load", () => resolve(true));
+                script.addEventListener("error", () => {
+                    script.remove();
+                    resolve(false);
+                });
+                document.head.append(script);
+            });
+        hljsPending = inject("/stage/protyle/js/highlight.js/highlight.min.js?v=11.12.0")
+            .then((ok) => ok && inject("/stage/protyle/js/highlight.js/third-languages.js?v=2.0.1"))
+            .then((ok) => {
+                if (!ok || !(window as unknown as {hljs?: unknown;}).hljs) {
+                    hljsPending = undefined;
+                    return false;
+                }
+                return true;
+            });
+    }
+    return hljsPending;
+};
+
 export interface PreviewController {
     isDirty: () => boolean;
     save: () => Promise<boolean>;
@@ -63,6 +87,7 @@ export const renderPreview = async (
     host: HTMLElement,
     link: string,
     i18n: Record<string, string>,
+    initialEditing: boolean,
 ): Promise<PreviewController> => {
     const fileName = link.slice("assets/".length);
     host.innerHTML = `<div class="code-files-preview">
@@ -73,114 +98,51 @@ export const renderPreview = async (
 <button data-action="save" class="b3-button b3-button--text fn__none">${i18n.save}</button>
 <button data-action="download" class="b3-button b3-button--text">${i18n.download}</button>
 </div>
-<div class="code-files-preview__body"><div class="code-files-preview__gutter" aria-hidden="true"></div><pre class="code-files-preview__code"><code>${i18n.loading}</code></pre></div>
+<div class="code-files-preview__body"><div class="code-files-preview__loading">${i18n.loading}</div></div>
 </div>`;
     const modeButton = host.querySelector('[data-action="mode"]') as HTMLButtonElement;
     const saveButton = host.querySelector('[data-action="save"]') as HTMLButtonElement;
     const copyButton = host.querySelector('[data-action="copy"]') as HTMLButtonElement;
     const downloadButton = host.querySelector('[data-action="download"]') as HTMLButtonElement;
+    const body = host.querySelector(".code-files-preview__body") as HTMLElement;
     downloadButton.addEventListener("click", () => {
         void downloadScript(link, fileName, i18n.downloadFailed);
     });
-    const code = host.querySelector("code") as HTMLElement;
-    const pre = host.querySelector("pre") as HTMLElement;
-    const gutter = host.querySelector(".code-files-preview__gutter") as HTMLElement;
     let editing = false;
     let savedText = "";
-    let editor: HTMLTextAreaElement | undefined;
-    const paintGutter = (text: string) => {
-        const lineCount = text.split("\n").length;
-        let numbers = "";
-        for (let i = 1; i <= lineCount; i++) {
-            numbers += `${i}\n`;
-        }
-        gutter.textContent = numbers;
-    };
-    const paintCode = (text: string) => {
-        const language = languageOf(fileName);
-        // Reuse SiYuan's bundled highlight.js when the editor has loaded it.
-        const hljs = (window as unknown as {
-            hljs?: {
-                highlight: (code: string, options: {language: string; ignoreIllegals?: boolean;}) => {value: string;};
-                getLanguage: (name: string) => unknown;
-            };
-        }).hljs;
-        if (hljs && language !== "plaintext" && hljs.getLanguage(language)) {
-            try {
-                code.innerHTML =
-                    hljs.highlight(text + (text.endsWith("\n") ? "" : "\n"), {language, ignoreIllegals: true}).value;
-                code.className = `hljs language-${language}`;
-                return;
-            } catch (error) {
-                console.error(error);
-            }
-        }
-        code.className = "";
-        code.textContent = text;
-    };
+    let view: EditorView | undefined;
+    let ref: AssetRef | undefined;
+    let loaded: AssetText | undefined;
+    const currentText = (): string => view?.state.doc.toString() ?? savedText;
+    const isDirty = (): boolean => editing && !!view && currentText() !== savedText;
     const setEditing = (next: boolean) => {
-        if (next === editing) {
+        if (next === editing || !view) {
             return;
         }
-        if (editing && editor && editor.value !== savedText) {
+        if (editing && isDirty()) {
             if (!window.confirm(i18n.discardChanges)) {
                 return;
             }
+            view.dispatch({
+                changes: {from: 0, to: view.state.doc.length, insert: savedText},
+            });
         }
         editing = next;
+        setCodeEditorReadOnly(view, !editing);
         modeButton.textContent = editing ? i18n.readonly : i18n.edit;
         saveButton.classList.toggle("fn__none", !editing);
         copyButton.classList.toggle("fn__none", editing);
         // Read-only: copy, edit, download. Editing: save, read-only, download.
         modeButton.before(saveButton);
         if (editing) {
-            editor = document.createElement("textarea");
-            editor.className = "code-files-preview__editor";
-            editor.value = savedText;
-            editor.spellcheck = false;
-            editor.wrap = "off";
-            const repaint = () => {
-                paintCode(editor.value);
-                paintGutter(editor.value);
-                requestAnimationFrame(() => {
-                    editor.style.height = "auto";
-                    editor.style.height = `${editor.scrollHeight}px`;
-                });
-            };
-            editor.addEventListener("input", repaint);
-            editor.addEventListener("keydown", (event) => {
-                // Keep Tab as indentation instead of moving focus.
-                if (event.key === "Tab") {
-                    event.preventDefault();
-                    const start = editor.selectionStart ?? 0;
-                    const end = editor.selectionEnd ?? 0;
-                    editor.value = `${editor.value.slice(0, start)}    ${editor.value.slice(end)}`;
-                    editor.selectionStart = editor.selectionEnd = start + 4;
-                    repaint();
-                }
-            });
-            pre.classList.add("code-files-preview__code--backdrop");
-            pre.appendChild(editor);
-            requestAnimationFrame(() => {
-                editor.style.height = "auto";
-                editor.style.height = `${editor.scrollHeight}px`;
-                editor.focus();
-            });
-        } else if (editor) {
-            paintCode(savedText);
-            paintGutter(savedText);
-            editor.remove();
-            editor = undefined;
-            pre.classList.remove("code-files-preview__code--backdrop");
-            pre.scrollTop = 0;
-            pre.scrollLeft = 0;
+            view.focus();
         }
     };
     modeButton.addEventListener("click", () => setEditing(!editing));
     copyButton.addEventListener("click", () => {
         void (async () => {
             try {
-                await copyText(savedText);
+                await copyText(currentText());
                 showMessage(i18n.copied);
             } catch (error) {
                 console.error(error);
@@ -189,58 +151,58 @@ export const renderPreview = async (
         })();
     });
     const saveNow = async (): Promise<boolean> => {
-        if (!editor) {
+        if (!view || !ref || !loaded) {
             return true;
         }
-        try {
-            const form = new FormData();
-            form.append("path", `data/${link}`);
-            form.append("file", new File([editor.value], fileName, {type: "text/plain"}));
-            const response = await fetch("/api/file/putFile", {body: form, method: "POST"});
-            const result = await response.json() as {code: number; msg: string;};
-            if (!response.ok || result.code !== 0) {
-                throw new Error(result.msg || `putFile HTTP ${response.status}`);
-            }
-            savedText = editor.value;
-            showMessage(i18n.saved);
-            setEditing(false);
-            return true;
-        } catch (error) {
-            console.error(error);
+        const failure = await writeAssetText(ref, {...loaded, text: currentText()});
+        if (failure) {
+            console.error(failure);
             showMessage(i18n.saveFailed);
             return false;
         }
+        savedText = currentText();
+        showMessage(i18n.saved);
+        setEditing(false);
+        return true;
     };
     saveButton.addEventListener("click", () => {
         void saveNow();
     });
     try {
-        const {text, truncated} = await readScript(link);
-        savedText = text;
-        paintGutter(text);
-        paintCode(text);
-        if (truncated) {
-            const note = document.createElement("div");
-            note.className = "b3-card__info";
-            note.textContent = i18n.truncated;
-            host.querySelector(".code-files-preview").appendChild(note);
-            // Editing a truncated preview would silently drop the tail on save.
-            modeButton.classList.add("fn__none");
+        const resolved = await resolveAsset(link);
+        if (resolved.kind !== "ok") {
+            throw new Error(resolved.message);
+        }
+        ref = resolved.ref;
+        if (ref.size > MAX_PREVIEW_BYTES) {
+            throw new Error(i18n.tooLarge);
+        }
+        loaded = await readAssetText(ref);
+        savedText = loaded.text;
+        body.innerHTML = "";
+        // Ensure SiYuan's bundled hljs is present before the editor computes decorations.
+        await ensureHljs();
+        view = createCodeEditor(body, {
+            doc: loaded.text,
+            language: languageOf(fileName),
+            onChange: () => undefined,
+            readOnly: !initialEditing,
+        });
+        if (initialEditing) {
+            setEditing(true);
         }
     } catch (error) {
         console.error(error);
-        code.textContent = i18n.loadFailed;
+        body.innerHTML = `<div class="b3-list--empty">${i18n.loadFailed}</div>`;
     }
-    return {
-        isDirty: () => editing && !!editor && editor.value !== savedText,
-        save: saveNow,
-    };
+    return {isDirty, save: saveNow};
 };
 export const openPreview = (
     pluginName: string,
     app: unknown,
     link: string,
     action: AssetOpenAction | undefined,
+    options: {forceTab?: boolean; startEditing?: boolean;} | undefined,
     getOpenedTab: () => Record<
         string,
         Array<
@@ -264,7 +226,9 @@ export const openPreview = (
     const noSplitScreen = (window.siyuan?.config?.fileTree as {noSplitScreenWhenOpenTab?: boolean;} | undefined)
         ?.noSplitScreenWhenOpenTab === true;
     const placement = action ?? "follow-tab";
-    const position = placement === "right" || (placement === "follow-tab" && !noSplitScreen) ?
+    const position = options?.forceTab ?
+        undefined :
+        placement === "right" || (placement === "follow-tab" && !noSplitScreen) ?
         "right" :
         placement === "bottom" ?
         "bottom" :
@@ -272,7 +236,7 @@ export const openPreview = (
     void openTab({
         app: app as never,
         custom: {
-            data: {link},
+            data: {link, startEditing: options?.startEditing === true},
             icon: "iconCode",
             id: pluginName + PREVIEW_TAB_TYPE,
             title: link.slice("assets/".length),
