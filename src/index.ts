@@ -4,6 +4,7 @@ import {
     Plugin,
     Setting,
     confirm,
+    getActiveEditor,
     getAllEditor,
     showMessage,
 } from "siyuan";
@@ -373,9 +374,22 @@ export default class ScriptAssetsPlugin extends Plugin {
             showMessage(this.i18n.createFailed);
         }
     }
-    private async pickAndInsert() {
+    private targetEditor() {
+        try {
+            const active = getActiveEditor();
+            if (active) {
+                return active;
+            }
+        } catch {
+            // Fall through to the first open editor.
+        }
         const editors = getAllEditor();
-        if (editors.length === 0) {
+        return editors.length > 0 ? editors[0] : undefined;
+    }
+
+    private async pickAndInsert() {
+        const editor = this.targetEditor();
+        if (!editor) {
             showMessage(this.i18n.noEditor);
             return;
         }
@@ -400,17 +414,16 @@ export default class ScriptAssetsPlugin extends Plugin {
                 click: () => this.insertReference(name),
             });
         }
-        const rect = editors[0].protyle.element.getBoundingClientRect();
+        const rect = editor.protyle.element.getBoundingClientRect();
         menu.open({x: rect.left, y: rect.top});
     }
 
     private async insertReference(name: string) {
-        const editors = getAllEditor();
-        if (editors.length === 0) {
+        const editor = this.targetEditor();
+        if (!editor) {
             showMessage(this.i18n.noEditor);
             return;
         }
-        const editor = editors[0];
         editor.focus();
         const html = editor.protyle.lute?.InlineMd2BlockDOM(toMarkdownLink(name)) ?? toMarkdownLink(name);
         editor.insert(html);

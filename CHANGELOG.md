@@ -1,5 +1,10 @@
 # Changelog
 
+## v0.7.1 2026-10-30
+
+* Fix insert landing in the wrong document: use the focused editor instead of the first open one
+* Action bar: restore undo/redo/wrap icons, insert the copy button after find
+
 ## v0.7.0 2026-10-30
 
 * Rewrite the tab view on the editor-siyuan action bar: language picker, undo/redo, wrap toggle, find/replace, read-only toggle, save, and our download icon button

@@ -77,5 +77,6 @@
   "downloadFile": "下载文件",
   "closeSave": "保存",
   "closeDiscard": "不保存",
-  "closeCancel": "取消"
+  "closeCancel": "取消",
+  "copyFile": "复制全文"
 }

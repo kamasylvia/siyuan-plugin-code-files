@@ -1,6 +1,6 @@
 {
   "name": "siyuan-plugin-code-files",
-  "version": "0.7.0",
+  "version": "0.7.1",
   "description": "Preview code files stored as SiYuan assets, reference them from notes, and expose them to AI agents",
   "main": ".src/index.js",
   "scripts": {

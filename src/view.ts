@@ -40,6 +40,7 @@ import {
     closeSearch,
     toggleSearchPanel,
 } from "./search";
+import {copyText} from "./shared";
 import {
     config,
     escapeHtml,
@@ -93,9 +94,10 @@ export function createView(host: IViewHost, t: T, options: IViewOptions): IEdito
 <span class="code-files-view__icon" data-type="wrap"><svg><use xlink:href="#${ICON_WRAP}"></use></svg></span>
 <span class="fn__flex-1"></span>
 <span class="code-files-view__icon" data-type="search"><svg><use xlink:href="#iconSearch"></use></svg></span>
-<span class="code-files-view__icon" data-type="download"><svg><use xlink:href="#iconDownload"></use></svg></span>
+<span class="code-files-view__icon" data-type="copy"><svg><use xlink:href="#iconCopy"></use></svg></span>
 <span class="code-files-view__icon" data-type="readonly"><svg><use xlink:href="#iconEye"></use></svg></span>
 <span class="code-files-view__icon" data-type="save"><svg><use xlink:href="#${ICON_SAVE}"></use></svg></span>
+<span class="code-files-view__icon" data-type="download"><svg><use xlink:href="#iconDownload"></use></svg></span>
 </div>
 <div class="code-files-view__body">
 <div class="code-files-view__mount"></div>
@@ -107,6 +109,7 @@ export function createView(host: IViewHost, t: T, options: IViewOptions): IEdito
     const redoIcon = root.querySelector<HTMLElement>('[data-type="redo"]')!;
     const wrapIcon = root.querySelector<HTMLElement>('[data-type="wrap"]')!;
     const searchIcon = root.querySelector<HTMLElement>('[data-type="search"]')!;
+    const copyIcon = root.querySelector<HTMLElement>('[data-type="copy"]')!;
     const downloadIcon = root.querySelector<HTMLElement>('[data-type="download"]')!;
     const saveIcon = root.querySelector<HTMLElement>('[data-type="save"]')!;
     const readonlyIcon = root.querySelector<HTMLElement>('[data-type="readonly"]')!;
@@ -151,9 +154,9 @@ export function createView(host: IViewHost, t: T, options: IViewOptions): IEdito
         wrapIcon.classList.toggle("code-files-view__icon--active", on);
         wrapIcon.setAttribute("aria-pressed", String(on));
     };
-
     const syncIcons = (): void => {
         searchIcon.setAttribute("aria-label", t("find"));
+        copyIcon.setAttribute("aria-label", t("copyFile"));
         downloadIcon.setAttribute("aria-label", t("downloadFile"));
         undoIcon.setAttribute("aria-label", t("undo"));
         redoIcon.setAttribute("aria-label", t("redo"));
@@ -250,6 +253,18 @@ export function createView(host: IViewHost, t: T, options: IViewOptions): IEdito
         wrapOverride = !wrapOn();
         setCodeEditorLineWrap(editor, wrapOverride);
         syncWrap();
+    });
+    copyIcon.addEventListener("click", () => {
+        if (!editor) {
+            return;
+        }
+        void copyText(editor.state.doc.toString()).then(
+            () => showMessage(t("copied")),
+            (error: unknown) => {
+                console.error(error);
+                showMessage(t("copyFailed"));
+            },
+        );
     });
     searchIcon.addEventListener("contextmenu", (event) => {
         event.preventDefault();

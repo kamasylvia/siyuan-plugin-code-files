@@ -77,5 +77,6 @@
   "downloadFile": "Download file",
   "closeSave": "Save",
   "closeDiscard": "Don't save",
-  "closeCancel": "Cancel"
+  "closeCancel": "Cancel",
+  "copyFile": "Copy file"
 }
