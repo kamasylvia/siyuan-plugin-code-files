@@ -29,5 +29,6 @@
   "save": "Save",
   "saved": "Saved",
   "saveFailed": "Failed to save",
-  "discardChanges": "Discard unsaved changes?"
+  "discardChanges": "Discard unsaved changes?",
+  "close": "Close"
 }

@@ -102,10 +102,17 @@ export default class ScriptAssetsPlugin extends Plugin {
         root.innerHTML = `<div class="code-files__toolbar">
 <button data-action="new" class="b3-button b3-button--text">${this.i18n.newScript}</button>
 <button data-action="refresh" class="b3-button b3-button--text">${this.i18n.refresh}</button>
+<span class="fn__flex-1"></span>
+<button data-action="close" class="b3-button b3-button--text" title="${this.i18n.close}">×</button>
 </div>
 <div class="code-files__list fn__flex-1"></div>`;
         root.querySelector('[data-action="new"]').addEventListener("click", () => void this.createScript());
         root.querySelector('[data-action="refresh"]').addEventListener("click", () => void this.refresh());
+        root.querySelector('[data-action="close"]').addEventListener("click", () => {
+            document.querySelector(`.dock .dock__item[data-type="${this.name}${DOCK_TYPE}"]`)?.dispatchEvent(
+                new MouseEvent("click", {bubbles: true}),
+            );
+        });
         this.element = root.querySelector(".code-files__list") as HTMLElement;
         host.appendChild(root);
     }

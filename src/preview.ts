@@ -121,7 +121,14 @@ export const renderPreview = async (
             editor.className = "code-files-preview__editor";
             editor.value = savedText;
             editor.spellcheck = false;
-            editor.addEventListener("input", () => paintGutter(editor.value));
+            editor.wrap = "off";
+            const repaint = () => {
+                paintCode(editor.value);
+                paintGutter(editor.value);
+                editor.style.height = "auto";
+                editor.style.height = `${editor.scrollHeight}px`;
+            };
+            editor.addEventListener("input", repaint);
             editor.addEventListener("keydown", (event) => {
                 // Keep Tab as indentation instead of moving focus.
                 if (event.key === "Tab") {
@@ -130,17 +137,22 @@ export const renderPreview = async (
                     const end = editor.selectionEnd ?? 0;
                     editor.value = `${editor.value.slice(0, start)}    ${editor.value.slice(end)}`;
                     editor.selectionStart = editor.selectionEnd = start + 4;
-                    paintGutter(editor.value);
+                    repaint();
                 }
             });
-            pre.classList.add("fn__none");
-            pre.after(editor);
+            pre.classList.add("code-files-preview__code--backdrop");
+            pre.appendChild(editor);
+            editor.style.height = "auto";
+            editor.style.height = `${editor.scrollHeight}px`;
+            editor.focus();
         } else if (editor) {
             paintCode(savedText);
             paintGutter(savedText);
             editor.remove();
             editor = undefined;
-            pre.classList.remove("fn__none");
+            pre.classList.remove("code-files-preview__code--backdrop");
+            pre.scrollTop = 0;
+            pre.scrollLeft = 0;
         }
     };
     modeButton.addEventListener("click", () => setEditing(!editing));

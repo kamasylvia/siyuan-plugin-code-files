@@ -1,5 +1,10 @@
 # Changelog
 
+## v0.4.1 2026-10-30
+
+* Editing keeps syntax highlighting: transparent textarea overlays the highlighted code with live re-render, synced height, visible caret and selection
+* Dock toolbar gains a close button
+
 ## v0.4.0 2026-10-30
 
 * Preview tab gains a Read-only/Edit toggle with save: edits overwrite the asset in place via putFile (stable path), with Tab-as-indent, live line numbers, and a discard-changes guard; editing is disabled for truncated (>1 MB) previews

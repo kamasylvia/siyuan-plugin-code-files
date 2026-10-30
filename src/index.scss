@@ -26,6 +26,7 @@
     flex: 1;
     min-height: 0;
     overflow: auto;
+    position: relative;
   }
 
   &__gutter {
@@ -43,7 +44,6 @@
     user-select: none;
     white-space: pre;
   }
-
   &__code {
     flex: 1;
     margin: 0;
@@ -52,21 +52,36 @@
     font-family: var(--b3-font-family-code);
     font-size: 13px;
     line-height: 1.6;
+    position: relative;
     white-space: pre;
+
+    &--backdrop {
+      pointer-events: none;
+      user-select: none;
+    }
   }
 
   &__editor {
     background-color: transparent;
     border: 0;
-    color: var(--b3-theme-on-background);
-    flex: 1;
+    caret-color: var(--b3-theme-on-background);
+    color: transparent;
     font-family: var(--b3-font-family-code);
     font-size: 13px;
+    left: 0;
     line-height: 1.6;
-    min-width: 0;
     outline: none;
+    overflow: hidden;
     padding: 12px 16px;
+    position: absolute;
     resize: none;
+    right: 0;
+    top: 0;
     white-space: pre;
+    z-index: 1;
+  }
+
+  &__editor::selection {
+    background-color: rgb(82 139 255 / 35%);
   }
 }
