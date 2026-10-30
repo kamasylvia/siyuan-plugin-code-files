@@ -1,22 +1,57 @@
-.plugin-sample {
-  &__custom-tab {
-    background-color: var(--b3-theme-background);
-    height: 100%;
-    width: 100%;
+.code-files {
+  display: flex;
+  flex-direction: column;
+  height: 100%;
+
+  &__toolbar {
     display: flex;
-    justify-content: center;
-    align-items: center;
+    gap: 4px;
+    padding: 4px 8px;
+    border-bottom: 1px solid var(--b3-border-color);
   }
 
-  &__custom-dock {
+  &__list {
+    overflow-y: auto;
+    padding: 4px;
+  }
+}
+
+.code-files-preview {
+  display: flex;
+  flex-direction: column;
+  height: 100%;
+
+  &__body {
     display: flex;
-    justify-content: center;
-    align-items: center;
+    flex: 1;
+    min-height: 0;
+    overflow: auto;
   }
 
-  &__time {
-    background: var(--b3-card-info-background);
-    border-radius: 4px;
-    padding: 2px 8px;
+  &__gutter {
+    background-color: var(--b3-theme-background-light);
+    border-right: 1px solid var(--b3-border-color);
+    color: var(--b3-theme-on-surface-light);
+    flex-shrink: 0;
+    font-family: var(--b3-font-family-code);
+    font-size: 13px;
+    line-height: 1.6;
+    padding: 12px 8px 12px 12px;
+    position: sticky;
+    left: 0;
+    text-align: right;
+    user-select: none;
+    white-space: pre;
+  }
+
+  &__code {
+    flex: 1;
+    margin: 0;
+    overflow: visible;
+    padding: 12px 16px;
+    font-family: var(--b3-font-family-code);
+    font-size: 13px;
+    line-height: 1.6;
+    white-space: pre;
   }
 }

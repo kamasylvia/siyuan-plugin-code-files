@@ -1,7 +1,7 @@
 {
-  "name": "plugin-sample",
-  "version": "0.5.2",
-  "description": "This is a sample plugin for SiYuan (https://b3log.org/siyuan)",
+  "name": "siyuan-plugin-code-files",
+  "version": "0.3.0",
+  "description": "Preview code files stored as SiYuan assets, reference them from notes, and expose them to AI agents",
   "main": ".src/index.js",
   "scripts": {
     "format": "dprint fmt",
@@ -16,7 +16,7 @@
     "build:kernel": "webpack --config webpack.kernel.config.js --mode production"
   },
   "keywords": [],
-  "author": "Vanessa",
+  "author": "kamasylvia",
   "license": "MIT",
   "packageManager": "pnpm@11.4.0",
   "engines": {
