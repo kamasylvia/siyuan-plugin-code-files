@@ -59,3 +59,9 @@ test("resolvePreviewAction follows gesture config, skipping external actions", (
     assert.equal(shared.resolvePreviewAction(undefined, {}), "follow-tab");
     assert.equal(shared.resolvePreviewAction(undefined, {altKey: true}), undefined);
 });
+
+test("baseNameWithoutID strips the kernel NodeID suffix", () => {
+    assert.equal(shared.baseNameWithoutID("main-20240101120000-abc1234.py"), "main.py");
+    assert.equal(shared.baseNameWithoutID("main.py"), "main.py");
+    assert.equal(shared.baseNameWithoutID("my-script-20240101120000-abc1234.sh"), "my-script.sh");
+});

@@ -24,6 +24,7 @@ import {
 } from "./settings";
 import {
     ASSETS_DIR,
+    baseNameWithoutID,
     copyText,
     isScriptPath,
     postJSON,
@@ -356,6 +357,23 @@ export default class ScriptAssetsPlugin extends Plugin {
         const trimmed = confirmed.trim();
         if (!isScriptPath(trimmed) || trimmed.includes("/") || trimmed.includes("\\")) {
             showMessage(this.i18n.invalidName);
+            return;
+        }
+        try {
+            const existing = (await this.listScripts()).find((name) =>
+                baseNameWithoutID(name).toLowerCase() === trimmed.toLowerCase()
+            );
+            if (existing) {
+                showMessage(this.i18n.alreadyExists);
+                openPreview(this.name, this.app, toAssetLink(existing), undefined, {
+                    forceTab: this.settings.openPosition === "tab",
+                    startEditing: this.settings.dockDefault === "edit",
+                }, () => this.getOpenedTab() as never);
+                return;
+            }
+        } catch (error) {
+            console.error(error);
+            showMessage(this.i18n.loadFailed);
             return;
         }
         const form = new FormData();

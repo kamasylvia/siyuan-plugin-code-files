@@ -1,5 +1,9 @@
 # Changelog
 
+## v0.7.2 2026-10-30
+
+* Fix duplicate names silently reusing the existing asset: creating a file with an existing base name now opens it instead of uploading
+
 ## v0.7.1 2026-10-30
 
 * Fix insert landing in the wrong document: use the focused editor instead of the first open one

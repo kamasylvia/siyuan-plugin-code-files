@@ -78,5 +78,6 @@
   "closeSave": "保存",
   "closeDiscard": "不保存",
   "closeCancel": "取消",
-  "copyFile": "复制全文"
+  "copyFile": "复制全文",
+  "alreadyExists": "同名文件已存在，直接打开"
 }

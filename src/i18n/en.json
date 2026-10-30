@@ -78,5 +78,6 @@
   "closeSave": "Save",
   "closeDiscard": "Don't save",
   "closeCancel": "Cancel",
-  "copyFile": "Copy file"
+  "copyFile": "Copy file",
+  "alreadyExists": "A file with this name already exists, opening it"
 }
