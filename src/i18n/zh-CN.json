@@ -79,5 +79,7 @@
   "closeDiscard": "不保存",
   "closeCancel": "取消",
   "copyFile": "复制全文",
-  "alreadyExists": "同名文件已存在，直接打开"
+  "alreadyExists": "同名文件已存在，直接打开",
+  "noSelection": "请先勾选文件",
+  "confirmDeleteBatch": "删除选中的 ${count} 个文件？笔记中的引用将失效。"
 }

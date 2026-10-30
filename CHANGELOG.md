@@ -1,5 +1,9 @@
 # Changelog
 
+## v0.8.0 2026-10-30
+
+* Redesign the dock: click the file name to open, per-row checkboxes, toolbar with select-all, new, batch delete, refresh, and close
+
 ## v0.7.2 2026-10-30
 
 * Fix duplicate names silently reusing the existing asset: creating a file with an existing base name now opens it instead of uploading

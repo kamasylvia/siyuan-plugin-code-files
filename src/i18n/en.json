@@ -79,5 +79,7 @@
   "closeDiscard": "Don't save",
   "closeCancel": "Cancel",
   "copyFile": "Copy file",
-  "alreadyExists": "A file with this name already exists, opening it"
+  "alreadyExists": "A file with this name already exists, opening it",
+  "noSelection": "Select files first",
+  "confirmDeleteBatch": "Delete ${count} selected files? Note references will break."
 }

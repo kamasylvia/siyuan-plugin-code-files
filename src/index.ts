@@ -234,14 +234,23 @@ export default class ScriptAssetsPlugin extends Plugin {
         const root = document.createElement("div");
         root.className = "code-files";
         root.innerHTML = `<div class="code-files__toolbar">
-<button data-action="new" class="b3-button b3-button--text">${this.i18n.newScript}</button>
-<button data-action="refresh" class="b3-button b3-button--text">${this.i18n.refresh}</button>
+<input type="checkbox" data-action="select-all" class="b3-checkbox" title="${this.i18n.selectAll}">
+<button data-action="new" class="b3-button b3-button--text" title="${this.i18n.newScript}">+</button>
+<button data-action="delete" class="b3-button b3-button--text" title="${this.i18n.deleteScript}"><svg class="b3-button__icon"><use xlink:href="#iconTrashcan"></use></svg></button>
+<button data-action="refresh" class="b3-button b3-button--text" title="${this.i18n.refresh}"><svg class="b3-button__icon"><use xlink:href="#iconRefresh"></use></svg></button>
 <span class="fn__flex-1"></span>
 <button data-action="close" class="b3-button b3-button--text" title="${this.i18n.close}">×</button>
 </div>
 <div class="code-files__list fn__flex-1"></div>`;
         root.querySelector('[data-action="new"]').addEventListener("click", () => void this.createScript());
         root.querySelector('[data-action="refresh"]').addEventListener("click", () => void this.refresh());
+        root.querySelector('[data-action="delete"]').addEventListener("click", () => void this.deleteSelected());
+        root.querySelector('[data-action="select-all"]').addEventListener("change", (event) => {
+            const checked = (event.target as HTMLInputElement).checked;
+            root.querySelectorAll<HTMLInputElement>('[data-action="select"]').forEach((box) => {
+                box.checked = checked;
+            });
+        });
         root.querySelector('[data-action="close"]').addEventListener("click", () => {
             document.querySelector(`.dock .dock__item[data-type="${this.name}${DOCK_TYPE}"]`)?.dispatchEvent(
                 new MouseEvent("click", {bubbles: true}),
@@ -284,15 +293,13 @@ export default class ScriptAssetsPlugin extends Plugin {
         for (const name of scripts) {
             const row = document.createElement("div");
             row.className = "b3-list-item";
-            row.innerHTML = `<span class="b3-list-item__text">${name}</span>
+            row.innerHTML = `<input type="checkbox" data-action="select" class="b3-checkbox" data-name="${name}">
+<span class="b3-list-item__text" data-action="open">${name}</span>
 <span class="b3-list-item__meta fn__flex">
-<button data-action="open" class="b3-button b3-button--text" title="${this.i18n.openScript}">↗</button>
 <button data-action="insert" class="b3-button b3-button--text" title="${this.i18n.insertReferenceTip}">+</button>
 <button data-action="copy" class="b3-button b3-button--text" title="${this.i18n.copyPath}">⧉</button>
-<button data-action="delete" class="b3-button b3-button--text" title="${this.i18n.deleteScript}"><svg class="b3-button__icon"><use xlink:href="#iconTrashcan"></use></svg></button>
 </span>`;
-            row.querySelector('[data-action="open"]').addEventListener("click", (event) => {
-                event.stopPropagation();
+            row.querySelector('[data-action="open"]').addEventListener("click", () => {
                 openPreview(this.name, this.app, toAssetLink(name), undefined, {
                     forceTab: this.settings.openPosition === "tab",
                     startEditing: this.settings.dockDefault === "edit",
@@ -315,12 +322,41 @@ export default class ScriptAssetsPlugin extends Plugin {
                     },
                 );
             });
-            row.querySelector('[data-action="delete"]').addEventListener("click", (event) => {
-                event.stopPropagation();
-                void this.deleteScript(name);
-            });
             list.appendChild(row);
         }
+    }
+
+    private async deleteSelected() {
+        const boxes = this.element?.querySelectorAll<HTMLInputElement>('[data-action="select"]:checked') ?? [];
+        const names = Array.from(boxes).map((box) => box.dataset.name ?? "").filter((name) => name !== "");
+        if (names.length === 0) {
+            showMessage(this.i18n.noSelection);
+            return;
+        }
+        confirm(
+            this.i18n.deleteScript,
+            this.i18n.confirmDeleteBatch.replace("${count}", String(names.length)),
+            async () => {
+                let failed = 0;
+                for (const name of names) {
+                    try {
+                        const response = await postJSON<null>("/api/file/removeFile", {path: `${ASSETS_DIR}/${name}`});
+                        if (response.code !== 0) {
+                            throw new Error(response.msg || "removeFile failed");
+                        }
+                    } catch (error) {
+                        console.error(error);
+                        failed++;
+                    }
+                }
+                if (failed > 0) {
+                    showMessage(this.i18n.deleteFailed);
+                } else {
+                    showMessage(this.i18n.deleted);
+                }
+                await this.refresh();
+            },
+        );
     }
 
     private async createScript() {
@@ -446,25 +482,5 @@ export default class ScriptAssetsPlugin extends Plugin {
         const html = editor.protyle.lute?.InlineMd2BlockDOM(toMarkdownLink(name)) ?? toMarkdownLink(name);
         editor.insert(html);
         showMessage(this.i18n.referenceInserted);
-    }
-
-    private async deleteScript(name: string) {
-        confirm(
-            this.i18n.deleteScript,
-            this.i18n.confirmDelete.replace("${name}", name),
-            async () => {
-                try {
-                    const response = await postJSON<null>("/api/file/removeFile", {path: `${ASSETS_DIR}/${name}`});
-                    if (response.code !== 0) {
-                        throw new Error(response.msg || "removeFile failed");
-                    }
-                    showMessage(this.i18n.deleted);
-                    await this.refresh();
-                } catch (error) {
-                    console.error(error);
-                    showMessage(this.i18n.deleteFailed);
-                }
-            },
-        );
     }
 }
