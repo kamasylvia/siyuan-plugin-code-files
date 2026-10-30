@@ -23,5 +23,11 @@
   "download": "下载",
   "downloadFailed": "下载脚本失败",
   "loading": "加载中...",
-  "truncated": "预览仅显示前 1 MB，完整内容请下载文件。"
+  "truncated": "预览仅显示前 1 MB，完整内容请下载文件。",
+  "edit": "编辑",
+  "readonly": "只读",
+  "save": "保存",
+  "saved": "已保存",
+  "saveFailed": "保存失败",
+  "discardChanges": "放弃未保存的修改？"
 }

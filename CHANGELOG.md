@@ -1,5 +1,9 @@
 # Changelog
 
+## v0.4.0 2026-10-30
+
+* Preview tab gains a Read-only/Edit toggle with save: edits overwrite the asset in place via putFile (stable path), with Tab-as-indent, live line numbers, and a discard-changes guard; editing is disabled for truncated (>1 MB) previews
+
 ## v0.3.0 2026-10-30
 
 * Rename plugin to Code Files (siyuan-plugin-code-files): preview, reference, manage, and expose code files

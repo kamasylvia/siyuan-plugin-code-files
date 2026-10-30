@@ -23,5 +23,11 @@
   "download": "Download",
   "downloadFailed": "Failed to download script",
   "loading": "Loading...",
-  "truncated": "Preview truncated to the first 1 MB. Download the file for the full content."
+  "truncated": "Preview truncated to the first 1 MB. Download the file for the full content.",
+  "edit": "Edit",
+  "readonly": "Read-only",
+  "save": "Save",
+  "saved": "Saved",
+  "saveFailed": "Failed to save",
+  "discardChanges": "Discard unsaved changes?"
 }

@@ -62,23 +62,32 @@ export const renderPreview = async (
     host.innerHTML = `<div class="code-files-preview">
 <div class="block__icons">
 <span class="block__icon--show fn__flex-1">${fileName}</span>
+<button data-action="mode" class="b3-button b3-button--text">${i18n.edit}</button>
+<button data-action="save" class="b3-button b3-button--text fn__none">${i18n.save}</button>
 <button data-action="download" class="b3-button b3-button--text">${i18n.download}</button>
 </div>
 <div class="code-files-preview__body"><div class="code-files-preview__gutter" aria-hidden="true"></div><pre class="code-files-preview__code"><code>${i18n.loading}</code></pre></div>
 </div>`;
+    const modeButton = host.querySelector('[data-action="mode"]') as HTMLButtonElement;
+    const saveButton = host.querySelector('[data-action="save"]') as HTMLButtonElement;
     host.querySelector('[data-action="download"]').addEventListener("click", () => {
         void downloadScript(link, fileName, i18n.downloadFailed);
     });
     const code = host.querySelector("code") as HTMLElement;
+    const pre = host.querySelector("pre") as HTMLElement;
     const gutter = host.querySelector(".code-files-preview__gutter") as HTMLElement;
-    try {
-        const {text, truncated} = await readScript(link);
+    let editing = false;
+    let savedText = "";
+    let editor: HTMLTextAreaElement | undefined;
+    const paintGutter = (text: string) => {
         const lineCount = text.split("\n").length;
         let numbers = "";
         for (let i = 1; i <= lineCount; i++) {
             numbers += `${i}\n`;
         }
         gutter.textContent = numbers;
+    };
+    const paintCode = (text: string) => {
         code.textContent = "";
         const language = languageOf(fileName);
         // Reuse SiYuan's bundled highlight.js when the editor has loaded it.
@@ -94,11 +103,82 @@ export const renderPreview = async (
         } else {
             code.textContent = text;
         }
+    };
+    const setEditing = (next: boolean) => {
+        if (next === editing) {
+            return;
+        }
+        if (editing && editor && editor.value !== savedText) {
+            if (!window.confirm(i18n.discardChanges)) {
+                return;
+            }
+        }
+        editing = next;
+        modeButton.textContent = editing ? i18n.readonly : i18n.edit;
+        saveButton.classList.toggle("fn__none", !editing);
+        if (editing) {
+            editor = document.createElement("textarea");
+            editor.className = "code-files-preview__editor";
+            editor.value = savedText;
+            editor.spellcheck = false;
+            editor.addEventListener("input", () => paintGutter(editor.value));
+            editor.addEventListener("keydown", (event) => {
+                // Keep Tab as indentation instead of moving focus.
+                if (event.key === "Tab") {
+                    event.preventDefault();
+                    const start = editor.selectionStart ?? 0;
+                    const end = editor.selectionEnd ?? 0;
+                    editor.value = `${editor.value.slice(0, start)}    ${editor.value.slice(end)}`;
+                    editor.selectionStart = editor.selectionEnd = start + 4;
+                    paintGutter(editor.value);
+                }
+            });
+            pre.classList.add("fn__none");
+            pre.after(editor);
+        } else if (editor) {
+            paintCode(savedText);
+            paintGutter(savedText);
+            editor.remove();
+            editor = undefined;
+            pre.classList.remove("fn__none");
+        }
+    };
+    modeButton.addEventListener("click", () => setEditing(!editing));
+    saveButton.addEventListener("click", () => {
+        if (!editor) {
+            return;
+        }
+        void (async () => {
+            try {
+                const form = new FormData();
+                form.append("path", `data/${link}`);
+                form.append("file", new File([editor.value], fileName, {type: "text/plain"}));
+                const response = await fetch("/api/file/putFile", {body: form, method: "POST"});
+                const result = await response.json() as {code: number; msg: string;};
+                if (!response.ok || result.code !== 0) {
+                    throw new Error(result.msg || `putFile HTTP ${response.status}`);
+                }
+                savedText = editor.value;
+                showMessage(i18n.saved);
+                setEditing(false);
+            } catch (error) {
+                console.error(error);
+                showMessage(i18n.saveFailed);
+            }
+        })();
+    });
+    try {
+        const {text, truncated} = await readScript(link);
+        savedText = text;
+        paintGutter(text);
+        paintCode(text);
         if (truncated) {
             const note = document.createElement("div");
             note.className = "b3-card__info";
             note.textContent = i18n.truncated;
             host.querySelector(".code-files-preview").appendChild(note);
+            // Editing a truncated preview would silently drop the tail on save.
+            modeButton.classList.add("fn__none");
         }
     } catch (error) {
         console.error(error);
