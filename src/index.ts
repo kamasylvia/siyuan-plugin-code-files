@@ -8,6 +8,8 @@ import {
     showMessage,
 } from "siyuan";
 import "./index.scss";
+import {openConfirmDialog} from "./dialog";
+import {ICONS} from "./icons";
 import {
     PREVIEW_TAB_TYPE,
     openPreview,
@@ -29,6 +31,7 @@ import {
     toAssetLink,
     toMarkdownLink,
 } from "./shared";
+import {watchCodeTheme} from "./theme";
 
 const DOCK_TYPE = "code_files_dock";
 
@@ -48,6 +51,8 @@ export default class ScriptAssetsPlugin extends Plugin {
     private settings: CodeFilesSettings = {...DEFAULT_SETTINGS};
 
     async onload() {
+        this.addIcons(ICONS);
+        watchCodeTheme(this);
         try {
             this.settings = normalizeSettings(await this.loadData("settings.json"));
         } catch {
@@ -101,21 +106,34 @@ export default class ScriptAssetsPlugin extends Plugin {
                         }
                         event.preventDefault();
                         event.stopImmediatePropagation();
-                        confirm(
-                            this.i18n.unsavedTitle,
-                            this.i18n.unsavedPrompt,
-                            () => {
-                                void controller.save().then((ok) => {
-                                    if (ok) {
-                                        this.closePreviewTab(custom);
-                                    }
-                                });
-                            },
-                        );
+                        openConfirmDialog({
+                            cancelLabel: this.i18n.closeCancel,
+                            text: this.i18n.unsavedPrompt,
+                            title: this.i18n.unsavedTitle,
+                            actions: [
+                                {
+                                    label: this.i18n.closeDiscard,
+                                    danger: true,
+                                    onClick: () => this.closePreviewTab(custom),
+                                },
+                                {
+                                    label: this.i18n.closeSave,
+                                    primary: true,
+                                    onClick: () => {
+                                        void controller.save().then((ok) => {
+                                            if (ok) {
+                                                this.closePreviewTab(custom);
+                                            }
+                                        });
+                                    },
+                                },
+                            ],
+                        });
                     })();
                 }, {capture: true});
             },
             beforeDestroy: (custom) => {
+                void controllers.get(custom)?.then((controller) => controller.dispose());
                 controllers.delete(custom);
             },
         });

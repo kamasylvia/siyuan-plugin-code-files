@@ -1,5 +1,11 @@
 # Changelog
 
+## v0.7.0 2026-10-30
+
+* Rewrite the tab view on the editor-siyuan action bar: language picker, undo/redo, wrap toggle, find/replace, read-only toggle, save, and our download icon button
+* Port context menu, language menu, theme following, debug toggle, and full i18n
+* Close confirmation is now three-way (save, don't save, cancel)
+
 ## v0.6.0 2026-10-30
 
 * Rewrite the code view on CodeMirror 6 (ported from editor-siyuan): native line numbers, undo/redo, indentation, and hljs decorations shared with SiYuan code blocks; the overlay misalignment is gone by construction

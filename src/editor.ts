@@ -10,11 +10,16 @@ import {
     history,
     historyKeymap,
     indentWithTab,
+    redo,
+    redoDepth,
+    undo,
+    undoDepth,
 } from "@codemirror/commands";
 import {
     indentOnInput,
     indentUnit,
 } from "@codemirror/language";
+import {searchKeymap} from "@codemirror/search";
 import {
     Compartment,
     EditorState,
@@ -35,8 +40,15 @@ import {
     ViewPlugin,
     type ViewUpdate,
 } from "@codemirror/view";
+import type {T} from "./i18n";
+import {
+    siyuanSearch,
+    toggleSearchPanel,
+} from "./search";
 
 export const readOnlyCompartment = new Compartment();
+export const lineNumbersCompartment = new Compartment();
+export const lineWrapCompartment = new Compartment();
 
 const SYNC_BUDGET_MS = 8;
 
@@ -165,8 +177,6 @@ const highlightField = StateField.define<HighlightState>({
     },
 });
 
-import {Facet} from "@codemirror/state";
-
 const initialLanguageFacet = Facet.define<string, string>({combine: (values) => values[0] ?? "plaintext"});
 
 const hljsDebounce = ViewPlugin.fromClass(
@@ -204,6 +214,12 @@ export interface EditorOptions {
     doc: string;
     language: string;
     readOnly: boolean;
+    showLineNumbers: boolean;
+    lineWrap: boolean;
+    ligatures: boolean;
+    tabSpaces: number;
+    t: T;
+    onContextMenu?: (event: MouseEvent) => void;
     onChange: () => void;
 }
 
@@ -213,6 +229,7 @@ const readOnlyExtensions = (readOnly: boolean): Extension => [
 ];
 
 export const createCodeEditor = (parent: HTMLElement, options: EditorOptions): EditorView => {
+    const indent = options.tabSpaces === 0 ? "\t" : " ".repeat(options.tabSpaces);
     const view = new EditorView({
         parent,
         state: EditorState.create({
@@ -221,11 +238,19 @@ export const createCodeEditor = (parent: HTMLElement, options: EditorOptions): E
                 history(),
                 highlightSpecialChars(),
                 drawSelection(),
+                siyuanSearch(options.t),
                 indentOnInput(),
-                indentUnit.of("    "),
-                EditorState.tabSize.of(4),
-                keymap.of([...defaultKeymap, ...historyKeymap, indentWithTab]),
-                lineNumbers(),
+                indentUnit.of(indent),
+                EditorState.tabSize.of(options.tabSpaces === 0 ? 4 : options.tabSpaces),
+                keymap.of([
+                    {key: "Mod-f", run: toggleSearchPanel, scope: "editor search-panel"},
+                    ...defaultKeymap,
+                    ...historyKeymap,
+                    ...searchKeymap,
+                    indentWithTab,
+                ]),
+                lineNumbersCompartment.of(options.showLineNumbers ? lineNumbers() : []),
+                lineWrapCompartment.of(options.lineWrap ? EditorView.lineWrapping : []),
                 readOnlyCompartment.of(readOnlyExtensions(options.readOnly)),
                 initialLanguageFacet.of(options.language),
                 highlightField,
@@ -249,12 +274,45 @@ export const createCodeEditor = (parent: HTMLElement, options: EditorOptions): E
             ],
         }),
     });
+    setCodeEditorLigatures(view, options.ligatures);
     view.dom.addEventListener("keydown", (event) => {
         if (event.defaultPrevented) {
             event.stopPropagation();
         }
     });
+    view.dom.addEventListener("contextmenu", (event) => {
+        if (!options.onContextMenu || (event.target as HTMLElement).closest(".code-files-search")) {
+            return;
+        }
+        event.preventDefault();
+        event.stopPropagation();
+        options.onContextMenu(event);
+    });
     return view;
+};
+
+export const setCodeEditorLineNumbers = (view: EditorView, show: boolean): void => {
+    view.dispatch({effects: lineNumbersCompartment.reconfigure(show ? lineNumbers() : [])});
+};
+
+export const setCodeEditorLineWrap = (view: EditorView, wrap: boolean): void => {
+    view.dispatch({effects: lineWrapCompartment.reconfigure(wrap ? EditorView.lineWrapping : [])});
+};
+
+export const setCodeEditorLigatures = (view: EditorView, ligatures: boolean): void => {
+    view.dom.style.fontVariantLigatures = ligatures ? "normal" : "none";
+};
+
+export const canCodeUndo = (view: EditorView): boolean => undoDepth(view.state) > 0;
+
+export const canCodeRedo = (view: EditorView): boolean => redoDepth(view.state) > 0;
+
+export const applyCodeUndo = (view: EditorView): void => {
+    undo(view);
+};
+
+export const applyCodeRedo = (view: EditorView): void => {
+    redo(view);
 };
 
 export const setCodeEditorReadOnly = (view: EditorView, readOnly: boolean): void => {

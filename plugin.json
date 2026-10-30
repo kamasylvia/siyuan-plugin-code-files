@@ -2,7 +2,7 @@
   "name": "siyuan-plugin-code-files",
   "author": "kamasylvia",
   "url": "https://github.com/kamasylvia/siyuan-plugin-code-files",
-  "version": "0.6.0",
+  "version": "0.7.0",
   "minAppVersion": "3.8.5",
   "kernels": [
     "windows",

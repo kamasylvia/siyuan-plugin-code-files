@@ -56,3 +56,301 @@
     }
   }
 }
+// 全部样式都挂在插件私有类名下，避免影响思源自身界面。
+//
+// 这里刻意不照搬代码块的样式。代码块是「嵌在正文里的一块卡片」：自带底色、
+// 自带浮在正文上的操作条。而本插件占据一整个页签，身份更接近思源的文档编辑器，
+// 所以背景取思源编辑器的背景色（--b3-theme-background，深色浅色模式各用各的），
+// 顶部用一条独立操作条而不是浮层。字体、字号、分隔线、悬停色全部走思源的 CSS 变量。
+//
+// 语法配色仍然复用用户选定的那份 hljs 主题样式表（见 theme.ts），
+// 那些 .hljs-keyword 之类的类名是全局的，不依赖任何祖先类名。
+//
+// 选择器权重说明：CodeMirror 的基础主题经 buildTheme 处理后每条规则都是
+// `.ͼN .sel`（两个类，0,2,0），并且它的 <style> 是在创建编辑器时才插进 head 的，
+// 也就是排在插件样式之后。所以这里一律用「三个类」的选择器（0,3,0）压过它，
+// 而不是靠 !important 或插入顺序。
+
+.code-files-view {
+  display: flex;
+  flex-direction: column;
+  height: 100%;
+  min-height: 0;
+  // 跟随思源编辑器背景，深色浅色模式自动切换
+  background-color: var(--b3-theme-background);
+  color: var(--b3-theme-on-background);
+
+  // ---- 顶部操作条 ----
+  &__action {
+    display: flex;
+    align-items: center;
+    flex-shrink: 0;
+    gap: 4px;
+    padding: 4px 6px 4px 10px;
+    border-bottom: 1px solid var(--b3-border-color);
+  }
+
+  // 语言标签：可点，点开是语言下拉
+  &__language {
+    color: var(--b3-theme-on-surface);
+    font-size: 12px;
+    line-height: 20px;
+    padding: 0 6px;
+    border-radius: var(--b3-border-radius);
+    cursor: pointer;
+    user-select: none;
+
+    &:hover {
+      color: var(--b3-theme-on-background);
+      background-color: var(--b3-list-hover);
+    }
+  }
+
+  // 移动端的文件名。页签头在移动端不存在，文件名只能放这里：
+  // 自然宽度 + 可收缩，空间不够时省略，而不是把右侧那排图标挤出去。
+  // 手机上没有悬停提示，省略掉的部分看不到，所以移动端把它改成横向滚动，见文件末尾。
+  &__title {
+    min-width: 0;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+    font-size: 14px;
+    color: var(--b3-theme-on-background);
+  }
+
+  // 图标按钮：尺寸与圆角对齐思源自己的图标按钮
+  &__icon {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    flex-shrink: 0;
+    width: 24px;
+    height: 24px;
+    border-radius: var(--b3-border-radius);
+    color: var(--b3-theme-on-surface);
+    cursor: pointer;
+
+    svg {
+      display: block;
+      width: 16px;
+      height: 16px;
+    }
+
+    &:hover {
+      color: var(--b3-theme-on-background);
+      background-color: var(--b3-list-hover);
+    }
+
+    // 有未保存改动时保存按钮一直显形并带主色：这是用户必须看得见的状态
+    &--dirty {
+      color: var(--b3-theme-primary);
+    }
+
+    // 状态按钮（换行）：开启时蓝，关闭时保持普通灰
+    &--active {
+      color: var(--b3-theme-primary);
+    }
+
+    // 撤销栈 / 重做栈空时置灰。仍然占位，操作条不会因为按钮变灰而左右跳动。
+    //
+    // 置灰用降低不透明度，不换颜色变量：思源自己的禁用态图标就是 .38（.block__icon[disabled]），
+    // 而 --b3-theme-on-surface-light 在深色主题里是 #bababa，比可点击态的 on-surface（#9aa0a6）
+    // 还亮，换过去会让禁用按钮看着比可用按钮更醒目，两个状态的观感正好对调。
+    &--disabled {
+      opacity: 0.38;
+      pointer-events: none;
+    }
+  }
+
+  &__body {
+    flex: 1;
+    min-height: 0;
+    display: flex;
+    flex-direction: column;
+  }
+
+  &__mount {
+    flex: 1;
+    min-width: 0;
+    min-height: 0;
+    display: flex;
+    flex-direction: column;
+  }
+
+  &__placeholder {
+    flex: 1;
+    padding: 12px;
+    color: var(--b3-theme-on-surface);
+    font-size: 12px;
+    line-height: 1.6;
+    white-space: pre-wrap;
+    word-break: break-word;
+
+    &--error {
+      color: var(--b3-theme-error);
+    }
+  }
+}
+
+// ---- CodeMirror 归位 ----
+.code-files-view .cm-editor {
+  flex: 1;
+  min-height: 0;
+  background-color: transparent;
+  color: inherit;
+
+  // CodeMirror 自带一圈 1px dotted 的聚焦外框，在页签里就是一圈多余的线
+  &.cm-focused {
+    outline: none;
+  }
+}
+
+.code-files-view .cm-editor .cm-scroller {
+  // 代码字体与字号跟随思源的代码字体设置；行高与思源编辑器一致
+  font-family: var(--b3-font-family-editor-code, var(--b3-font-family-code));
+  // 字号取同样内容的代码块字号：思源代码块的 .hljs 是编辑器字号的 85%，
+  // 直接写 --b3-font-size-editor 会比旁边的代码块大一圈。思源没有单独的代码字号变量。
+  font-size: calc(var(--b3-font-size-editor) * 0.85);
+  font-weight: var(--b3-font-weight-editor-code, 400);
+  line-height: 1.625;
+  color: inherit;
+  background-color: transparent;
+  // 顶部留一点呼吸位。内边距放在 scroller 上而不是 cm-content 上：
+  // cm-content 的上内边距会把正文压低，而行号列不会有同样的偏移，两者就对不齐了。
+  box-sizing: border-box;
+  padding-top: 6px;
+}
+
+.code-files-view .cm-editor .cm-content {
+  padding: 0;
+  caret-color: var(--b3-theme-on-background);
+  // 预览（只读）模式下 CodeMirror 会把 .cm-content 的 contenteditable 置为 false，
+  // 而 Chromium 对非可编辑元素按「继承祖先的 user-select」处理，思源的
+  // .layout-tab-container 恰好是 user-select: none —— 于是整段正文既选不中（鼠标是
+  // 默认箭头），复制命令拿到的也是空串，连之前的剪贴板内容都会被清掉。
+  // 编辑模式不受影响（编辑宿主即使继承到 none，浏览器也允许选中），所以这条规则
+  // 实际只在只读模式下起作用；思源自己的只读预览面板 .protyle-preview 也是这么写的。
+  user-select: text;
+}
+
+.code-files-view .cm-editor .cm-line {
+  padding: 0 12px 0 0;
+}
+
+// 选区底色。
+//
+// 不能只写三条类：drawSelection 画选区用的是
+// `&light.cm-focused > .cm-scroller > .cm-selectionLayer .cm-selectionBackground`，
+// 算下来五个类，而且它的样式表排在插件之后。这里跟着同一套结构写，六个类稳压它。
+//
+// 颜色取思源主色的半透明版本：深色下是偏暗的蓝、浅色下是浅蓝，选区里的 token 颜色仍按
+// 主题着色，不会被底色盖住。旧浏览器不认 color-mix 时用第一条——思源自己的半透明主色。
+.code-files-view .cm-editor.cm-focused > .cm-scroller > .cm-selectionLayer .cm-selectionBackground {
+  background-color: var(--b3-theme-primary-lighter);
+  background-color: color-mix(in srgb, var(--b3-theme-primary) 34%, transparent);
+}
+
+// 失焦后选区还留着的时候（焦点去了别的面板）：CodeMirror 默认给它灰色。
+.code-files-view .cm-editor .cm-selectionLayer .cm-selectionBackground {
+  background-color: var(--b3-theme-primary-lighter);
+  background-color: color-mix(in srgb, var(--b3-theme-primary) 34%, transparent);
+}
+
+.code-files-view .cm-editor .cm-cursor {
+  border-left-color: var(--b3-theme-on-background);
+}
+
+// CodeMirror 默认把控制字符染成写死的红色
+.code-files-view .cm-editor .cm-specialChar {
+  color: var(--b3-theme-error);
+}
+
+// 行号列。
+// 背景必须不透明：CodeMirror 的行号列是 sticky 的，横向滚动时正文会滑到它下面，
+// 透明背景会让两段文字叠在一起。
+.code-files-view .cm-editor .cm-gutters {
+  background-color: var(--b3-theme-background);
+  color: var(--b3-theme-on-surface-light);
+  border: 0;
+  font-family: inherit;
+  font-size: inherit;
+  line-height: inherit;
+}
+
+.code-files-view .cm-editor .cm-lineNumbers .cm-gutterElement {
+  padding: 0 10px 0 12px;
+  min-width: 0;
+}
+
+// 搜索替换面板。
+// 面板里的控件全是思源自己的类（b3-text-field / b3-form__icon / block__icon /
+// b3-button），颜色、圆角、悬停、ariaLabel 提示都由思源自己的 CSS 提供，
+// 这里只补三件事：把 .cm-panels 的底色与描边换成思源的，把 .block__icons
+// 从 42px 的工具栏压成一行图标，再把它们排成一行。
+//
+// .cm-panels 的底色是 CodeMirror 用 `&light .cm-panels` 写的，算下来是三个类
+// （0,3,0），所以这里必须用四个类的选择器才压得住。
+//
+// 同时要把它从「浮层」打回普通文档流：CodeMirror 给的是
+// position:sticky + z-index:300，在思源里这会让面板浮到宿主的页签栏、提示气泡
+// 之上。面板本来就是 .cm-scroller 的兄弟节点，不参与滚动，去掉这两条不影响位置。
+.code-files-view .cm-editor .cm-panels.cm-panels-top {
+  position: static;
+  z-index: auto;
+  background-color: var(--b3-theme-surface);
+  color: var(--b3-theme-on-surface);
+  border-bottom: 1px solid var(--b3-border-color);
+}
+
+.code-files-search {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+  padding: 6px 8px;
+
+  &__row {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    min-width: 0;
+  }
+
+  &__field {
+    flex: 1;
+    min-width: 0;
+
+    .b3-text-field {
+      width: 100%;
+    }
+  }
+
+  // .block__icons 默认是 42px 高的块级工具栏；这里要的是与输入框同高的一串图标。
+  // 多带一个类名是为了稳压思源自己的 .block__icons（同为单类选择器，只靠加载顺序不可靠）。
+  &__flags.block__icons {
+    min-height: 0;
+    padding: 0;
+    gap: 2px;
+    flex-shrink: 0;
+
+    // 开关打开时按思源的惯例挂 ft__primary。思源自己的 base.css 里有这条规则，
+    // 这里再写一份是为了不依赖它——写的是 svg 自身，所以悬停时也不会被父级盖掉。
+    .ft__primary {
+      color: var(--b3-theme-primary);
+    }
+  }
+}
+
+// ---- 语言下拉 ----
+// .b3-menu__filter 自带 min-width:260px / max-width:420px，不放开会把搜索框卡在菜单中间。
+.b3-menu__filter.code-files__lang-filter {
+  min-width: 0;
+  max-width: none;
+  width: 100%;
+  box-sizing: border-box;
+  max-height: 60vh;
+
+  .b3-list {
+    overflow: auto;
+    min-height: 120px;
+  }
+}
