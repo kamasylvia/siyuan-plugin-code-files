@@ -1,5 +1,10 @@
 # Changelog
 
+## v0.5.2 2026-10-30
+
+* Dock delete button uses the trashcan icon instead of text
+* Fix editing not focusable: textarea inherits pointer-events none from the backdrop, restored to auto
+
 ## v0.5.1 2026-10-30
 
 * Fix New script doing nothing: window.prompt is unavailable in Electron, replaced with a Dialog input

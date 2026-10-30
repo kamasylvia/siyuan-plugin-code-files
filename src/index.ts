@@ -158,7 +158,7 @@ export default class ScriptAssetsPlugin extends Plugin {
 <button data-action="open" class="b3-button b3-button--text" title="${this.i18n.openScript}">↗</button>
 <button data-action="insert" class="b3-button b3-button--text" title="${this.i18n.insertReferenceTip}">+</button>
 <button data-action="copy" class="b3-button b3-button--text" title="${this.i18n.copyPath}">⧉</button>
-<button data-action="delete" class="b3-button b3-button--text" title="${this.i18n.deleteScript}">×</button>
+<button data-action="delete" class="b3-button b3-button--text" title="${this.i18n.deleteScript}"><svg class="b3-button__icon"><use xlink:href="#iconTrashcan"></use></svg></button>
 </span>`;
             row.querySelector('[data-action="open"]').addEventListener("click", (event) => {
                 event.stopPropagation();
