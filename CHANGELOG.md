@@ -1,5 +1,28 @@
 # Changelog
 
+## v0.9.1 2026-10-30
+
+* Adopt tsc --noEmit: tsconfig aligned to es2024 + DOM (was es6), all 43 errors fixed, pnpm typecheck added
+* Fix real bug found by tsc: hljsDebounce called a missing cancel() method, crashing large-file highlight; cancel now defined and reused by destroy()
+* Narrow Plugin.i18n (Record<string, JSONValue>) once via a strings getter; unify window.hljs typing in hljs.ts
+
+## v0.9.0 2026-10-30
+
+* Unsaved-changes guard that actually works: wrap Wnd.removeTab so every close path (×, middle-click, double-click, tab menu, shortcut, replace, over-limit) asks save/discard/cancel on dirty tabs; the old ×-button interceptor never fired (wrong selector)
+* Dirty tabs show a • prefix in the tab bar, mirroring SiYuan's own editor tabs
+* beforeunload fallback blocks window close with unsaved code tabs open
+
+## v0.8.3 2026-10-30
+
+* Dock list refreshes automatically when the panel is shown (debounced resize hook), no manual refresh needed after re-enabling
+* Display the user-typed file name everywhere (dock rows, insert menu, link text, tab title) instead of the kernel-suffixed asset name
+* Rename user-facing "script" wording to "file" (New file, Delete file, toasts); script-extension and API names unchanged
+
+## v0.8.2 2026-10-30
+
+* Insert-reference row button now uses the block-ref icon (iconRef) instead of `+`, so it no longer looks like the New button
+* Creating a file with an existing name no longer auto-opens it: show an error toast with the duplicate-name reason instead
+
 ## v0.8.1 2026-10-30
 
 * Fix dock alignment: fixed 24px toolbar cells for even spacing, select-all checkbox aligned with row checkboxes

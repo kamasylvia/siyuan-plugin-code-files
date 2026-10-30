@@ -39,8 +39,17 @@
       margin-right: 0;
       padding-left: 8px;
       padding-right: 8px;
+      // Same fixed cells as the toolbar: svg icons center like the toolbar ones.
+      .b3-list-item__meta > button {
+        align-items: center;
+        display: inline-flex;
+        height: 24px;
+        justify-content: center;
+        min-width: 24px;
+        padding: 0;
+        width: 24px;
+      }
     }
-
     .b3-list-item > input[type="checkbox"] {
       flex-shrink: 0;
       height: 14px;

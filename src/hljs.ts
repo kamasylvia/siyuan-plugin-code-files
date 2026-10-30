@@ -4,6 +4,25 @@
 // copy so token classification matches SiYuan code blocks exactly.
 import {debug} from "./debug";
 
+export interface HljsLanguage {
+    aliases?: string[];
+}
+
+export interface HljsGlobal {
+    highlight: (code: string, options: {language: string; ignoreIllegals?: boolean;}) => {
+        value: string;
+        _emitter?: unknown;
+    };
+    getLanguage: (name: string) => HljsLanguage | undefined;
+    listLanguages: () => string[];
+}
+
+declare global {
+    interface Window {
+        hljs?: HljsGlobal;
+    }
+}
+
 const HLJS_CDN = "/stage/protyle/js/highlight.js";
 const HLJS_VERSION = "11.12.0";
 const HLJS_THIRD_VERSION = "2.0.1";
@@ -30,7 +49,7 @@ function injectScript(src: string, id: string): Promise<boolean> {
 }
 
 export function loadHljs(): Promise<boolean> {
-    if ((window as unknown as {hljs?: unknown;}).hljs) {
+    if (window.hljs) {
         return Promise.resolve(true);
     }
     if (!pending) {
@@ -39,7 +58,7 @@ export function loadHljs(): Promise<boolean> {
                 ok && injectScript(`${HLJS_CDN}/third-languages.js?v=${HLJS_THIRD_VERSION}`, HLJS_THIRD_SCRIPT_ID)
             )
             .then((ok) => {
-                if (!ok || !(window as unknown as {hljs?: unknown;}).hljs) {
+                if (!ok || !window.hljs) {
                     pending = undefined;
                     debug("hljs load failed");
                     return false;

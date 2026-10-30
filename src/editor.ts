@@ -40,6 +40,7 @@ import {
     ViewPlugin,
     type ViewUpdate,
 } from "@codemirror/view";
+import type {HljsGlobal} from "./hljs";
 import type {T} from "./i18n";
 import {
     siyuanSearch,
@@ -66,17 +67,7 @@ interface HljsEmitter {
     rootNode?: {children?: Array<HljsNode | string>;};
 }
 
-interface HljsResult {
-    value: string;
-    _emitter?: HljsEmitter;
-}
-
-interface HljsGlobal {
-    highlight: (code: string, options: {language: string; ignoreIllegals?: boolean;}) => HljsResult;
-    getLanguage: (name: string) => unknown;
-}
-
-const hljsOf = (): HljsGlobal | undefined => (window as unknown as {hljs?: HljsGlobal;}).hljs;
+const hljsOf = (): HljsGlobal | undefined => window.hljs;
 
 const scopeToClass = (scope: string): string => {
     if (scope.startsWith("language:")) {
@@ -140,7 +131,8 @@ const buildDecorations = (text: string, language: string): RangeSet<Decoration> 
         return Decoration.none;
     }
     const result = hljs.highlight(text, {language, ignoreIllegals: true});
-    return Decoration.set(treeRanges(result._emitter) ?? htmlRanges(result.value), true);
+    const emitter = result._emitter as HljsEmitter | undefined;
+    return Decoration.set(treeRanges(emitter) ?? htmlRanges(result.value), true);
 };
 
 interface HighlightState {
@@ -186,6 +178,13 @@ const hljsDebounce = ViewPlugin.fromClass(
         constructor(private readonly view: EditorView) {
         }
 
+        private cancel(): void {
+            if (this.timer !== undefined) {
+                window.clearTimeout(this.timer);
+                this.timer = undefined;
+            }
+        }
+
         update(update: ViewUpdate): void {
             if (!update.docChanged) {
                 return;
@@ -202,10 +201,7 @@ const hljsDebounce = ViewPlugin.fromClass(
         }
 
         destroy(): void {
-            if (this.timer !== undefined) {
-                window.clearTimeout(this.timer);
-                this.timer = undefined;
-            }
+            this.cancel();
         }
     },
 );

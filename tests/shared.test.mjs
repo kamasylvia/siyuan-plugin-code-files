@@ -25,6 +25,10 @@ test("isScriptPath matches script extensions only", () => {
 test("toAssetLink and toMarkdownLink use the assets/ prefix", () => {
     assert.equal(shared.toAssetLink("main-abc123.py"), "assets/main-abc123.py");
     assert.equal(shared.toMarkdownLink("main-abc123.py"), "[main-abc123.py](assets/main-abc123.py)");
+    assert.equal(
+        shared.toMarkdownLink("main-20240101120000-abc1234.py"),
+        "[main.py](assets/main-20240101120000-abc1234.py)",
+    );
 });
 
 test("previewLinkOf admits script assets only", () => {

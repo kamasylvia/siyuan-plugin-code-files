@@ -9,14 +9,14 @@ import {
     showMessage,
 } from "siyuan";
 import "./index.scss";
-import {openConfirmDialog} from "./dialog";
 import {ICONS} from "./icons";
 import {
     PREVIEW_TAB_TYPE,
+    guardTab,
     openPreview,
     renderPreview,
+    type PreviewController,
 } from "./preview";
-import type {PreviewController} from "./preview";
 import {
     DEFAULT_SETTINGS,
     normalizeSettings,
@@ -34,6 +34,7 @@ import {
     toMarkdownLink,
 } from "./shared";
 import {watchCodeTheme} from "./theme";
+import {allTabs} from "./view";
 
 const DOCK_TYPE = "code_files_dock";
 
@@ -47,14 +48,24 @@ interface UploadResponse {
     errFiles?: string[];
     succMap?: Record<string, string>;
 }
-
 export default class ScriptAssetsPlugin extends Plugin {
     private element: HTMLElement | undefined;
     private settings: CodeFilesSettings = {...DEFAULT_SETTINGS};
+    private refreshTimer: number | undefined;
+
+    /**
+     * Plugin.i18n is typed Record<string, JSONValue>; our locale files only
+     * contain strings, so narrow once here instead of at every call site.
+     */
+    private get strings(): Record<string, string> {
+        return this.i18n as unknown as Record<string, string>;
+    }
 
     async onload() {
         this.addIcons(ICONS);
         watchCodeTheme(this);
+        // Last resort: browser/Electron window close bypasses removeTab.
+        window.addEventListener("beforeunload", this.confirmUnsavedUnload);
         try {
             this.settings = normalizeSettings(await this.loadData("settings.json"));
         } catch {
@@ -79,62 +90,36 @@ export default class ScriptAssetsPlugin extends Plugin {
                 icon: "iconCode",
                 position: "LeftBottom",
                 size: {width: 260, height: 0},
-                title: this.i18n.codeFiles,
+                title: this.strings.codeFiles,
             },
             data: {},
             type: DOCK_TYPE,
-            init: (dock) => this.renderDock(dock.element),
+            init: (dock) => this.renderDock(dock.element as HTMLElement),
+            resize: () => {
+                // SiYuan has no dock-shown hook; resize fires when the panel
+                // is revealed (and while dragging the splitter), so debounce.
+                window.clearTimeout(this.refreshTimer);
+                this.refreshTimer = window.setTimeout((): void => void this.refresh(), 300);
+            },
         });
         const controllers = new WeakMap<object, Promise<PreviewController>>();
         this.addTab({
             type: PREVIEW_TAB_TYPE,
             init: (custom) => {
                 const data = custom.data as {link?: string; startEditing?: boolean;} | undefined;
+                const headElement = custom.tab?.headElement;
                 const pending = renderPreview(
-                    custom.element,
+                    custom.element as HTMLElement,
                     data?.link ?? "",
-                    this.i18n as unknown as Record<string, string>,
+                    this.strings,
                     data?.startEditing === true,
+                    headElement,
                 );
                 controllers.set(custom, pending);
-                // Intercept the tab × button while dirty: beforeDestroy cannot
-                // await an async dialog, so ask before the close happens.
-                const head = (custom as {tab?: {headElement?: HTMLElement;};}).tab?.headElement;
-                head?.querySelector('[data-type="close"]')?.addEventListener("click", (event) => {
-                    void (async () => {
-                        const controller = await pending;
-                        if (!controller.isDirty()) {
-                            return;
-                        }
-                        event.preventDefault();
-                        event.stopImmediatePropagation();
-                        openConfirmDialog({
-                            cancelLabel: this.i18n.closeCancel,
-                            text: this.i18n.unsavedPrompt,
-                            title: this.i18n.unsavedTitle,
-                            actions: [
-                                {
-                                    label: this.i18n.closeDiscard,
-                                    danger: true,
-                                    onClick: () => this.closePreviewTab(custom),
-                                },
-                                {
-                                    label: this.i18n.closeSave,
-                                    primary: true,
-                                    onClick: () => {
-                                        void controller.save().then((ok) => {
-                                            if (ok) {
-                                                this.closePreviewTab(custom);
-                                            }
-                                        });
-                                    },
-                                },
-                            ],
-                        });
-                    })();
-                }, {capture: true});
+                guardTab(custom, pending, this.strings);
             },
-            beforeDestroy: (custom) => {
+            beforeDestroy() {
+                const custom = this as object;
                 void controllers.get(custom)?.then((controller) => controller.dispose());
                 controllers.delete(custom);
             },
@@ -142,7 +127,7 @@ export default class ScriptAssetsPlugin extends Plugin {
 
         this.addCommand({
             langKey: "insertReference",
-            langText: this.i18n.insertReference,
+            langText: this.strings.insertReference,
             hotkey: "",
             callback: () => this.pickAndInsert(),
         });
@@ -178,36 +163,36 @@ export default class ScriptAssetsPlugin extends Plugin {
             });
         };
         selectRow(
-            this.i18n.openPosition,
-            this.i18n.openPositionDesc,
+            this.strings.openPosition,
+            this.strings.openPositionDesc,
             this.settings.openPosition,
             [
-                {value: "right", label: this.i18n.openPositionRight},
-                {value: "tab", label: this.i18n.openPositionTab},
+                {value: "right", label: this.strings.openPositionRight},
+                {value: "tab", label: this.strings.openPositionTab},
             ],
             (next) => {
                 this.settings.openPosition = next === "tab" ? "tab" : "right";
             },
         );
         selectRow(
-            this.i18n.noteDefault,
-            this.i18n.noteDefaultDesc,
+            this.strings.noteDefault,
+            this.strings.noteDefaultDesc,
             this.settings.noteDefault,
             [
-                {value: "preview", label: this.i18n.modePreview},
-                {value: "edit", label: this.i18n.modeEdit},
+                {value: "preview", label: this.strings.modePreview},
+                {value: "edit", label: this.strings.modeEdit},
             ],
             (next) => {
                 this.settings.noteDefault = next === "edit" ? "edit" : "preview";
             },
         );
         selectRow(
-            this.i18n.dockDefault,
-            this.i18n.dockDefaultDesc,
+            this.strings.dockDefault,
+            this.strings.dockDefaultDesc,
             this.settings.dockDefault,
             [
-                {value: "preview", label: this.i18n.modePreview},
-                {value: "edit", label: this.i18n.modeEdit},
+                {value: "preview", label: this.strings.modePreview},
+                {value: "edit", label: this.strings.modeEdit},
             ],
             (next) => {
                 this.settings.dockDefault = next === "edit" ? "edit" : "preview";
@@ -215,31 +200,32 @@ export default class ScriptAssetsPlugin extends Plugin {
         );
     }
 
-    private closePreviewTab(custom: object) {
-        const tab = (custom as {tab?: {id?: string; parent?: {removeTab?: (id: string) => void;};};}).tab;
-        if (tab?.id && tab.parent?.removeTab) {
-            tab.parent.removeTab(tab.id);
-        }
-    }
-
     onLayoutReady() {
         void this.refresh();
     }
 
     async onunload() {
+        window.clearTimeout(this.refreshTimer);
+        window.removeEventListener("beforeunload", this.confirmUnsavedUnload);
         this.element = undefined;
     }
+
+    private readonly confirmUnsavedUnload = (event: BeforeUnloadEvent): void => {
+        if (allTabs().some((tab) => tab.isDirty())) {
+            event.preventDefault();
+        }
+    };
 
     private renderDock(host: HTMLElement) {
         const root = document.createElement("div");
         root.className = "code-files";
         root.innerHTML = `<div class="code-files__toolbar">
-<input type="checkbox" data-action="select-all" class="b3-checkbox" title="${this.i18n.selectAll}">
-<button data-action="new" class="b3-button b3-button--text" title="${this.i18n.newScript}">+</button>
-<button data-action="delete" class="b3-button b3-button--text" title="${this.i18n.deleteScript}"><svg class="b3-button__icon"><use xlink:href="#iconTrashcan"></use></svg></button>
-<button data-action="refresh" class="b3-button b3-button--text" title="${this.i18n.refresh}"><svg class="b3-button__icon"><use xlink:href="#iconRefresh"></use></svg></button>
+<input type="checkbox" data-action="select-all" class="b3-checkbox" title="${this.strings.selectAll}">
+<button data-action="new" class="b3-button b3-button--text" title="${this.strings.newScript}">+</button>
+<button data-action="delete" class="b3-button b3-button--text" title="${this.strings.deleteScript}"><svg class="b3-button__icon"><use xlink:href="#iconTrashcan"></use></svg></button>
+<button data-action="refresh" class="b3-button b3-button--text" title="${this.strings.refresh}"><svg class="b3-button__icon"><use xlink:href="#iconRefresh"></use></svg></button>
 <span class="fn__flex-1"></span>
-<button data-action="close" class="b3-button b3-button--text" title="${this.i18n.close}">×</button>
+<button data-action="close" class="b3-button b3-button--text" title="${this.strings.close}">×</button>
 </div>
 <div class="code-files__list fn__flex-1"></div>`;
         root.querySelector('[data-action="new"]').addEventListener("click", () => void this.createScript());
@@ -283,21 +269,24 @@ export default class ScriptAssetsPlugin extends Plugin {
             scripts = await this.listScripts();
         } catch (error) {
             console.error(error);
-            showMessage(this.i18n.loadFailed);
+            showMessage(this.strings.loadFailed);
             return;
         }
         if (scripts.length === 0) {
-            list.innerHTML = `<div class="b3-list--empty">${this.i18n.noScripts}</div>`;
+            list.innerHTML = `<div class="b3-list--empty">${this.strings.noScripts}</div>`;
             return;
         }
         for (const name of scripts) {
             const row = document.createElement("div");
             row.className = "b3-list-item";
+            // Display the name the user typed; the kernel-suffixed asset name
+            // stays in data-name for open/insert/copy/delete.
+            const display = baseNameWithoutID(name);
             row.innerHTML = `<input type="checkbox" data-action="select" class="b3-checkbox" data-name="${name}">
-<span class="b3-list-item__text" data-action="open">${name}</span>
+<span class="b3-list-item__text" data-action="open" title="${name}">${display}</span>
 <span class="b3-list-item__meta fn__flex">
-<button data-action="insert" class="b3-button b3-button--text" title="${this.i18n.insertReferenceTip}">+</button>
-<button data-action="copy" class="b3-button b3-button--text" title="${this.i18n.copyPath}">⧉</button>
+<button data-action="insert" class="b3-button b3-button--text" title="${this.strings.insertReferenceTip}"><svg class="b3-button__icon"><use xlink:href="#iconRef"></use></svg></button>
+<button data-action="copy" class="b3-button b3-button--text" title="${this.strings.copyPath}">⧉</button>
 </span>`;
             row.querySelector('[data-action="open"]').addEventListener("click", () => {
                 openPreview(this.name, this.app, toAssetLink(name), undefined, {
@@ -315,10 +304,10 @@ export default class ScriptAssetsPlugin extends Plugin {
             row.querySelector('[data-action="copy"]').addEventListener("click", (event) => {
                 event.stopPropagation();
                 void copyText(toAssetLink(name)).then(
-                    () => showMessage(this.i18n.copied),
+                    () => showMessage(this.strings.copied),
                     (error: unknown) => {
                         console.error(error);
-                        showMessage(this.i18n.copyFailed);
+                        showMessage(this.strings.copyFailed);
                     },
                 );
             });
@@ -327,15 +316,15 @@ export default class ScriptAssetsPlugin extends Plugin {
     }
 
     private async deleteSelected() {
-        const boxes = this.element?.querySelectorAll<HTMLInputElement>('[data-action="select"]:checked') ?? [];
-        const names = Array.from(boxes).map((box) => box.dataset.name ?? "").filter((name) => name !== "");
+        const selected = this.element?.querySelectorAll<HTMLInputElement>('[data-action="select"]:checked');
+        const names = Array.from(selected ?? []).map((box) => box.dataset.name ?? "").filter((name) => name !== "");
         if (names.length === 0) {
-            showMessage(this.i18n.noSelection);
+            showMessage(this.strings.noSelection);
             return;
         }
         confirm(
-            this.i18n.deleteScript,
-            this.i18n.confirmDeleteBatch.replace("${count}", String(names.length)),
+            this.strings.deleteScript,
+            this.strings.confirmDeleteBatch.replace("${count}", String(names.length)),
             async () => {
                 let failed = 0;
                 for (const name of names) {
@@ -350,9 +339,9 @@ export default class ScriptAssetsPlugin extends Plugin {
                     }
                 }
                 if (failed > 0) {
-                    showMessage(this.i18n.deleteFailed);
+                    showMessage(this.strings.deleteFailed);
                 } else {
-                    showMessage(this.i18n.deleted);
+                    showMessage(this.strings.deleted);
                 }
                 await this.refresh();
             },
@@ -362,8 +351,8 @@ export default class ScriptAssetsPlugin extends Plugin {
     private async createScript() {
         const dialog = new Dialog({
             content: `<div class="b3-dialog__content"><input class="b3-text-field fn__block" value="main.py"></div>
-<div class="b3-dialog__action"><button class="b3-button b3-button--cancel">${this.i18n.cancel}</button><button class="b3-button b3-button--text">${this.i18n.save}</button></div>`,
-            title: this.i18n.newScript,
+<div class="b3-dialog__action"><button class="b3-button b3-button--cancel">${this.strings.cancel}</button><button class="b3-button b3-button--text">${this.strings.save}</button></div>`,
+            title: this.strings.newScript,
             width: "360px",
         });
         const input = dialog.element.querySelector("input") as HTMLInputElement;
@@ -392,7 +381,7 @@ export default class ScriptAssetsPlugin extends Plugin {
         }
         const trimmed = confirmed.trim();
         if (!isScriptPath(trimmed) || trimmed.includes("/") || trimmed.includes("\\")) {
-            showMessage(this.i18n.invalidName);
+            showMessage(this.strings.invalidName);
             return;
         }
         try {
@@ -400,16 +389,12 @@ export default class ScriptAssetsPlugin extends Plugin {
                 baseNameWithoutID(name).toLowerCase() === trimmed.toLowerCase()
             );
             if (existing) {
-                showMessage(this.i18n.alreadyExists);
-                openPreview(this.name, this.app, toAssetLink(existing), undefined, {
-                    forceTab: this.settings.openPosition === "tab",
-                    startEditing: this.settings.dockDefault === "edit",
-                }, () => this.getOpenedTab() as never);
+                showMessage(this.strings.alreadyExists, 7000, "error");
                 return;
             }
         } catch (error) {
             console.error(error);
-            showMessage(this.i18n.loadFailed);
+            showMessage(this.strings.loadFailed);
             return;
         }
         const form = new FormData();
@@ -421,11 +406,11 @@ export default class ScriptAssetsPlugin extends Plugin {
             if (result.code !== 0 || Object.keys(result.data?.succMap ?? {}).length === 0) {
                 throw new Error(result.msg || "upload failed");
             }
-            showMessage(this.i18n.created);
+            showMessage(this.strings.created);
             await this.refresh();
         } catch (error) {
             console.error(error);
-            showMessage(this.i18n.createFailed);
+            showMessage(this.strings.createFailed);
         }
     }
     private targetEditor() {
@@ -444,7 +429,7 @@ export default class ScriptAssetsPlugin extends Plugin {
     private async pickAndInsert() {
         const editor = this.targetEditor();
         if (!editor) {
-            showMessage(this.i18n.noEditor);
+            showMessage(this.strings.noEditor);
             return;
         }
         let scripts: string[];
@@ -452,11 +437,11 @@ export default class ScriptAssetsPlugin extends Plugin {
             scripts = await this.listScripts();
         } catch (error) {
             console.error(error);
-            showMessage(this.i18n.loadFailed);
+            showMessage(this.strings.loadFailed);
             return;
         }
         if (scripts.length === 0) {
-            showMessage(this.i18n.noScripts);
+            showMessage(this.strings.noScripts);
             return;
         }
         const menu = new Menu("codeFilesInsert");
@@ -464,7 +449,7 @@ export default class ScriptAssetsPlugin extends Plugin {
             menu.addItem({
                 icon: "iconCode",
                 id: name,
-                label: name,
+                label: baseNameWithoutID(name),
                 click: () => this.insertReference(name),
             });
         }
@@ -475,12 +460,12 @@ export default class ScriptAssetsPlugin extends Plugin {
     private async insertReference(name: string) {
         const editor = this.targetEditor();
         if (!editor) {
-            showMessage(this.i18n.noEditor);
+            showMessage(this.strings.noEditor);
             return;
         }
         editor.focus();
         const html = editor.protyle.lute?.InlineMd2BlockDOM(toMarkdownLink(name)) ?? toMarkdownLink(name);
         editor.insert(html);
-        showMessage(this.i18n.referenceInserted);
+        showMessage(this.strings.referenceInserted);
     }
 }

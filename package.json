@@ -1,14 +1,14 @@
 {
   "name": "siyuan-plugin-code-files",
-  "version": "0.8.1",
+  "version": "0.9.1",
   "description": "Preview code files stored as SiYuan assets, reference them from notes, and expose them to AI agents",
   "main": ".src/index.js",
   "scripts": {
     "format": "dprint fmt",
     "format:check": "dprint check",
     "lint": "eslint . --fix --cache",
+    "typecheck": "tsc --noEmit",
     "test": "node --test tests/*.test.mjs",
-    "dev": "run-p dev:kernel dev:app",
     "dev:app": "webpack --config webpack.config.js --mode development",
     "dev:kernel": "webpack --config webpack.kernel.config.js --mode development",
     "build": "run-s build:kernel build:app",

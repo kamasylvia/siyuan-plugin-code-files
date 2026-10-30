@@ -40,7 +40,10 @@ import {
     closeSearch,
     toggleSearchPanel,
 } from "./search";
-import {copyText} from "./shared";
+import {
+    baseNameWithoutID,
+    copyText,
+} from "./shared";
 import {
     config,
     escapeHtml,
@@ -74,6 +77,7 @@ const megabytes = (bytes: number): string => `${(bytes / 1024 / 1024).toFixed(1)
 export interface IViewHost {
     element: Element;
     data?: Record<string, unknown>;
+    headElement?: HTMLElement;
 }
 
 export interface IViewOptions {
@@ -167,6 +171,13 @@ export function createView(host: IViewHost, t: T, options: IViewOptions): IEdito
         wrapIcon.setAttribute("aria-label", t("lineWrap"));
         languageLabel.textContent = editor ? language : "";
         languageLabel.setAttribute("aria-label", t("languageLabel"));
+        // Mirror the dirty state to the tab head so unsaved tabs are visible
+        // in the tab bar, like SiYuan's own editor tabs.
+        const title = host.headElement?.querySelector(".item__text");
+        if (title) {
+            const base = baseNameWithoutID(link.slice("assets/".length));
+            title.textContent = dirty ? `• ${base}` : base;
+        }
         syncHistory();
         syncWrap();
     };

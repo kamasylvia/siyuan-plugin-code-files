@@ -1,9 +1,12 @@
 {
   "compilerOptions": {
     "noImplicitAny": true,
-    "module": "commonjs",
-    "target": "es6",
-    "strictNullChecks": false
+    "module": "esnext",
+    "moduleResolution": "bundler",
+    "target": "es2024",
+    "lib": ["es2024", "dom", "dom.iterable"],
+    "strictNullChecks": false,
+    "skipLibCheck": true
   },
   "include": [
     "src/**/*.ts"

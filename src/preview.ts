@@ -1,9 +1,14 @@
+import type {Tab} from "siyuan";
 import {
     openTab,
     showMessage,
 } from "siyuan";
+import {openConfirmDialog} from "./dialog";
 import {makeT} from "./i18n";
-import type {AssetOpenAction} from "./shared";
+import {
+    baseNameWithoutID,
+    type AssetOpenAction,
+} from "./shared";
 import {createView} from "./view";
 
 export const PREVIEW_TAB_TYPE = "script_preview";
@@ -40,9 +45,10 @@ export const renderPreview = async (
     link: string,
     i18n: Record<string, string>,
     initialEditing: boolean,
+    headElement?: HTMLElement,
 ): Promise<PreviewController> => {
     const t = makeT(i18n);
-    const tab = createView({element: host, data: {link}}, t, {
+    const tab = createView({element: host, data: {link}, headElement}, t, {
         initialEditing,
         maxSizeMB: 5,
         onDownload: (ref, fileName) => {
@@ -50,6 +56,76 @@ export const renderPreview = async (
         },
     });
     return {isDirty: tab.isDirty, save: tab.save, dispose: tab.dispose};
+};
+
+export interface GuardedModel {
+    data?: {link?: string;};
+    tab?: Tab;
+}
+
+/**
+ * Wrap removeTab so dirty tabs ask before closing. Every close path
+ * (×, middle-click, double-click, tab menu, shortcut, replace, over-limit)
+ * funnels through Wnd.removeTab, so a single guard covers them all.
+ * beforeDestroy cannot await a dialog, hence the pre-close interception.
+ */
+export const guardTab = (
+    model: GuardedModel,
+    pending: Promise<PreviewController>,
+    i18n: Record<string, string>,
+): void => {
+    const head = model.tab;
+    const wnd = head?.parent;
+    if (!head || !wnd) {
+        return;
+    }
+    const original = wnd.removeTab.bind(wnd);
+    let asking = false;
+    wnd.removeTab = (id: string, ...rest: [boolean?, boolean?, boolean?]) => {
+        if (asking || id !== head.id) {
+            original(id, ...rest);
+            return;
+        }
+        void pending.then((controller) => {
+            if (!controller.isDirty()) {
+                original(id, ...rest);
+                return;
+            }
+            asking = true;
+            // Switch to the dirty tab so the dialog context is visible.
+            wnd.switchTab(head.headElement, true);
+            openConfirmDialog({
+                cancelLabel: i18n.closeCancel,
+                text: i18n.unsavedPrompt,
+                title: i18n.unsavedTitle,
+                onCancel: () => {
+                    asking = false;
+                },
+                actions: [
+                    {
+                        label: i18n.closeDiscard,
+                        danger: true,
+                        onClick: () => {
+                            asking = false;
+                            original(id, ...rest);
+                        },
+                    },
+                    {
+                        label: i18n.closeSave,
+                        primary: true,
+                        onClick: () => {
+                            void controller.save().then((ok) => {
+                                asking = false;
+                                if (ok) {
+                                    original(id, ...rest);
+                                }
+                            });
+                        },
+                    },
+                ],
+            });
+        });
+    };
 };
 export const openPreview = (
     pluginName: string,
@@ -93,7 +169,7 @@ export const openPreview = (
             data: {link, startEditing: options?.startEditing === true},
             icon: "iconCode",
             id: pluginName + PREVIEW_TAB_TYPE,
-            title: link.slice("assets/".length),
+            title: baseNameWithoutID(link.slice("assets/".length)),
         },
         keepCursor: placement === "background" ? true : undefined,
         position,

@@ -33,11 +33,12 @@ export const isScriptPath = (path: string): boolean => {
 // Asset links are stored as `assets/<file>` inside notes.
 export const toAssetLink = (fileName: string): string => `assets/${fileName}`;
 
-export const toMarkdownLink = (fileName: string): string => `[${fileName}](${toAssetLink(fileName)})`;
-
 // Strip the kernel-assigned `-<NodeID>` suffix: `main-20240101-abcdef.py`
 // becomes `main.py`. Node IDs are 14 digits + `-` + 7 alphanumerics.
 export const baseNameWithoutID = (fileName: string): string => fileName.replace(/-\d{14}-[a-z0-9]{7}(?=\.[^.]+$)/, "");
+
+export const toMarkdownLink = (fileName: string): string =>
+    `[${baseNameWithoutID(fileName)}](${toAssetLink(fileName)})`;
 
 export const stripQuery = (link: string): string => {
     const cut = link.search(/[?#]/);
