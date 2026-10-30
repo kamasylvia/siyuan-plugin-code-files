@@ -1,5 +1,9 @@
 # Changelog
 
+## v0.5.1 2026-10-30
+
+* Fix New script doing nothing: window.prompt is unavailable in Electron, replaced with a Dialog input
+
 ## v0.5.0 2026-10-30
 
 * New Insert reference command: pick a code file from a menu to insert its asset link at the cursor, without opening the dock

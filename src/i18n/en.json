@@ -32,5 +32,6 @@
   "discardChanges": "Discard unsaved changes?",
   "close": "Close",
   "copy": "Copy",
-  "copyFailed": "Failed to copy"
+  "copyFailed": "Failed to copy",
+  "cancel": "Cancel"
 }

@@ -32,5 +32,6 @@
   "discardChanges": "放弃未保存的修改？",
   "close": "关闭",
   "copy": "复制",
-  "copyFailed": "复制失败"
+  "copyFailed": "复制失败",
+  "cancel": "取消"
 }

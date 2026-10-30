@@ -1,4 +1,5 @@
 import {
+    Dialog,
     Menu,
     Plugin,
     Setting,
@@ -186,11 +187,37 @@ export default class ScriptAssetsPlugin extends Plugin {
     }
 
     private async createScript() {
-        const name = window.prompt(this.i18n.newScriptName, "main.py");
-        if (!name) {
+        const dialog = new Dialog({
+            content: `<div class="b3-dialog__content"><input class="b3-text-field fn__block" value="main.py"></div>
+<div class="b3-dialog__action"><button class="b3-button b3-button--cancel">${this.i18n.cancel}</button><button class="b3-button b3-button--text">${this.i18n.save}</button></div>`,
+            title: this.i18n.newScript,
+            width: "360px",
+        });
+        const input = dialog.element.querySelector("input") as HTMLInputElement;
+        input.focus();
+        input.select();
+        const {promise, resolve} = Promise.withResolvers<string | undefined>();
+        const buttons = dialog.element.querySelectorAll(".b3-dialog__action button");
+        (buttons[0] as HTMLButtonElement).addEventListener("click", () => {
+            dialog.destroy();
+            resolve(undefined);
+        });
+        const submit = () => {
+            const value = input.value;
+            dialog.destroy();
+            resolve(value);
+        };
+        (buttons[1] as HTMLButtonElement).addEventListener("click", submit);
+        input.addEventListener("keydown", (event) => {
+            if (event.key === "Enter") {
+                submit();
+            }
+        });
+        const confirmed = await promise;
+        if (!confirmed) {
             return;
         }
-        const trimmed = name.trim();
+        const trimmed = confirmed.trim();
         if (!isScriptPath(trimmed) || trimmed.includes("/") || trimmed.includes("\\")) {
             showMessage(this.i18n.invalidName);
             return;
