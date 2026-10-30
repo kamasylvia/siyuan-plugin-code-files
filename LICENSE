@@ -1,6 +1,14 @@
 MIT License
 
 Copyright (c) 2023 SiYuan 思源笔记
+Copyright (c) 2026 kamasylvia
+
+Portions of the editor view (src/view.ts, src/editor.ts, src/asset.ts,
+src/search.ts, src/context-menu.ts, src/language-menu.ts, src/dialog.ts,
+src/theme.ts, src/icons.ts, src/frontend.ts, src/util.ts, src/i18n.ts,
+src/debug.ts, src/hljs.ts, src/language.ts) are derived from editor-siyuan
+Copyright (c) 2026 wmy2981 (MIT License)
+https://github.com/wmy2981/editor-siyuan
 
 Permission is hereby granted, free of charge, to any person obtaining a copy
 of this software and associated documentation files (the "Software"), to deal

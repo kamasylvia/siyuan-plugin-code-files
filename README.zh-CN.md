@@ -33,3 +33,7 @@
 * `src/index.ts`：前端 dock 面板（列表、新建、插入引用、删除）
 * `src/kernel.ts`：后端智能体能力 `get_referenced_scripts`
 * `src/shared.ts`：前后端共享的脚本扩展名约定
+
+## 致谢
+
+编辑器页签（CodeMirror 装配、操作条、搜索、菜单、主题跟随、资源读写）移植改编自 wmy2981 的 [editor-siyuan](https://github.com/wmy2981/editor-siyuan)（MIT），详见 LICENSE。

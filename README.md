@@ -33,3 +33,7 @@ Store code files as SiYuan assets, preview them with syntax highlighting and lin
 * `src/index.ts`: frontend dock panel (list, create, insert reference, delete)
 * `src/kernel.ts`: backend agent capability `get_referenced_scripts`
 * `src/shared.ts`: script-extension conventions shared by both ends
+
+## Credits
+
+The editor tab (CodeMirror setup, action bar, search, menus, theme following, asset I/O) is ported and adapted from [editor-siyuan](https://github.com/wmy2981/editor-siyuan) by wmy2981 (MIT). See LICENSE for attribution details.
