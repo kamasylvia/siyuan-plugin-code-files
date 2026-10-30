@@ -1,5 +1,9 @@
 # Changelog
 
+## v0.4.4 2026-10-30
+
+* Toolbar order follows the mode: read-only shows Copy, Edit, Download; editing shows Save, Read-only, Download
+
 ## v0.4.3 2026-10-30
 
 * Fix copy failing on remote/plain-HTTP kernels: clipboard writes fall back to execCommand like the official writeText (preview Copy button and dock copy-path action)

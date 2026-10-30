@@ -73,7 +73,8 @@ export const renderPreview = async (
     const modeButton = host.querySelector('[data-action="mode"]') as HTMLButtonElement;
     const saveButton = host.querySelector('[data-action="save"]') as HTMLButtonElement;
     const copyButton = host.querySelector('[data-action="copy"]') as HTMLButtonElement;
-    host.querySelector('[data-action="download"]').addEventListener("click", () => {
+    const downloadButton = host.querySelector('[data-action="download"]') as HTMLButtonElement;
+    downloadButton.addEventListener("click", () => {
         void downloadScript(link, fileName, i18n.downloadFailed);
     });
     const code = host.querySelector("code") as HTMLElement;
@@ -125,6 +126,8 @@ export const renderPreview = async (
         modeButton.textContent = editing ? i18n.readonly : i18n.edit;
         saveButton.classList.toggle("fn__none", !editing);
         copyButton.classList.toggle("fn__none", editing);
+        // Read-only: copy, edit, download. Editing: save, read-only, download.
+        modeButton.before(saveButton);
         if (editing) {
             editor = document.createElement("textarea");
             editor.className = "code-files-preview__editor";
